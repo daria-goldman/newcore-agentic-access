@@ -1,0 +1,102 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: #f5f5f5;
+  font-family: "SF Pro Text", "SF Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: rgba(0, 0, 0, 0.88);
+  -webkit-font-smoothing: antialiased;
+}
+
+.shell { display: flex; height: 100vh; overflow: hidden; }
+
+.sider {
+  width: 216px;
+  flex: 0 0 216px;
+  background: #fff;
+  border-right: 1px solid #f0f0f0;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sider-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.45);
+  padding: 0 12px 8px;
+}
+
+.main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.page { flex: 1 1 auto; overflow-y: auto; padding: 20px 24px 32px; }
+.page-title { font-size: 24px; font-weight: 600; margin: 0 0 14px; }
+.section-label { font-size: 14px; font-weight: 600; margin: 0 0 10px; }
+.section-gap { height: 32px; }
+
+.widgets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.widget .ant-card-body { display: flex; flex-direction: column; justify-content: space-between; height: 162px; }
+.widget-meta { font-size: 12px; color: rgba(0, 0, 0, 0.45); font-weight: 400; }
+.widget-link { align-self: flex-start; }
+
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
+.stat-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(0, 0, 0, 0.65); }
+.stat-row b { margin-left: auto; font-size: 14px; color: rgba(0, 0, 0, 0.88); }
+
+.toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.toolbar-grow { flex: 1 1 auto; }
+.bulkbar {
+  display: flex; align-items: center; gap: 8px;
+  background: #e6f4ff; border: 1px solid #91caff; border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 8px;
+  animation: rise 180ms ease-out;
+}
+
+.scope-chip { animation: rise 180ms ease-out; }
+
+.panel {
+  width: 400px; flex: 0 0 400px;
+  background: #fff;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.1);
+  display: flex; flex-direction: column;
+  transition: width 240ms ease, flex-basis 240ms ease;
+  overflow: hidden;
+}
+.panel.collapsed { width: 56px; flex-basis: 56px; }
+.panel-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px; border-bottom: 1px solid #f0f0f0;
+  font-size: 16px; font-weight: 600;
+}
+.panel-body { flex: 1 1 auto; overflow-y: auto; padding: 16px; }
+.panel-foot { padding: 12px 16px 16px; border-top: 1px solid #f0f0f0; }
+
+.suggestion {
+  border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px 14px;
+  cursor: pointer; transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+  background: #fff;
+}
+.suggestion:hover { border-color: #91caff; background: #f5faff; transform: translateY(-1px); }
+.suggestion.primary { background: #e6f4ff; border-color: #91caff; }
+.suggestion-title { font-weight: 600; font-size: 14px; }
+.suggestion.primary .suggestion-title { color: #0958d9; }
+.suggestion-sub { font-size: 12px; color: rgba(0, 0, 0, 0.65); margin-top: 3px; }
+
+.step { animation: rise 220ms ease-out both; }
+.step-line { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; padding: 3px 0; }
+.finding { border: 1px solid #f0f0f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; background: #fff; }
+.finding.off { opacity: 0.55; }
+.finding-title { font-weight: 600; font-size: 13px; }
+.finding-meta { font-size: 12px; color: rgba(0, 0, 0, 0.45); }
+.finding-basis { font-size: 12px; color: rgba(0, 0, 0, 0.65); margin-top: 6px; }
+.finding-cost { font-size: 12px; color: #d46b08; margin-top: 4px; }
+.result-line { display: flex; gap: 8px; align-items: baseline; font-size: 13px; padding: 4px 0; }
+
+.blind { background: #fffbe6; border: 1px solid #ffe58f; border-radius: 8px; padding: 10px 12px; font-size: 12px; }
+
+.dept-soft { color: rgba(0, 0, 0, 0.45); }
+.row-in-scope td:first-child { box-shadow: inset 3px 0 0 #1677ff; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulsing { animation: pulse 1s ease-in-out infinite; }
