@@ -153,7 +153,7 @@ function ColumnManager({ order, setOrder, hidden, setHidden }) {
   )
 }
 
-export default function AgentsTable({ rows, selected, onSelected, filters, setFilters, onBulk, onManage, onAskAi }) {
+export default function AgentsTable({ rows, selected, onSelected, filters, setFilters, onBulk, onAskAi }) {
   const [query, setQuery] = useState('')
   const [order, setOrder] = useState(DEFAULT_ORDER)
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN)
@@ -300,7 +300,10 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         </div>
       ) : null}
 
-      {selected.length ? (
+      {/* One selected row is not a bulk operation, and it already has its own Actions control.
+          The assistant needs no button here either: a picked row is attached to the composer
+          the moment it is picked. */}
+      {selected.length > 1 ? (
         <div className="bulkbar">
           <b>{selected.length} agents selected</b>
           <span className="toolbar-grow" />
@@ -309,9 +312,6 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
               Edit in bulk <DownOutlined style={{ fontSize: 10 }} />
             </Button>
           </Dropdown>
-          <Button size="small" type="primary" onClick={() => onManage(selected)}>
-            Manage in Access AI
-          </Button>
           <Button size="small" type="text" onClick={() => onSelected([])}>
             Clear
           </Button>

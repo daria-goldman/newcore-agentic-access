@@ -150,7 +150,6 @@ export default function App() {
             filters={filters}
             setFilters={setFilters}
             onBulk={onBulk}
-            onManage={() => setCollapsed(false)}
             onAskAi={() => {
               setCollapsed(false)
               setTableAttached(true)
