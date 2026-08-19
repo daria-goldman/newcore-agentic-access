@@ -4,7 +4,8 @@ Prototype of the agentic experience for the IAM admin, built around one request:
 
 > I want to harden the access of my marketing agents.
 
-Live: https://daria-goldman.github.io/newcore-agentic-access/
+Live: **https://newcore-agentic-access.vercel.app/**
+Mirror: https://daria-goldman.github.io/newcore-agentic-access/
 
 ## What this screen argues
 
