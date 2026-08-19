@@ -5,7 +5,7 @@ import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
-import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS } from './data.js'
+import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS, applyFixes, computeStats } from './data.js'
 import { countMatching, explain, parseQuery } from './query.js'
 
 // A set the assistant derives can be pushed to the table, but only when the admin asks for it.
@@ -21,6 +21,9 @@ export default function App() {
   const [view, setView] = useState('new')
   const [chats, setChats] = useState([])
   const [activeId, setActiveId] = useState(null)
+  // The estate is state, not a constant: applying a change edits it and every widget recounts.
+  const [agents, setAgents] = useState(AGENTS)
+  const stats = useMemo(() => computeStats(agents), [agents])
   const [filters, setFilters] = useState({})
   const [selected, setSelected] = useState([])
   const [widget, setWidget] = useState(null)
@@ -98,8 +101,8 @@ export default function App() {
   }
 
   const attachedAgents = useMemo(
-    () => selected.map((k) => AGENTS.find((a) => a.key === k)?.name).filter(Boolean),
-    [selected],
+    () => selected.map((k) => agents.find((a) => a.key === k)?.name).filter(Boolean),
+    [selected, agents],
   )
 
   const toggleWidget = (title) => {
@@ -140,11 +143,12 @@ export default function App() {
             onFix={(key) => startChat(key, { text: SCENARIOS[key].title, chips: [] })}
             selected={widget}
             onToggle={toggleWidget}
+            stats={stats}
           />
           <div className="section-gap" />
           <div className="section-label">Agents</div>
           <AgentsTable
-            rows={AGENTS}
+            rows={agents}
             selected={selected}
             onSelected={setSelected}
             filters={filters}
@@ -171,6 +175,7 @@ export default function App() {
         updateChat={updateChat}
         openChat={openChat}
         applyFilters={setFilters}
+        onApplied={(ids) => setAgents((prev) => applyFixes(prev, ids))}
         scopeFilters={SCOPE_FILTERS}
         tableAttached={tableAttached}
         onDetachTable={() => setTableAttached(false)}

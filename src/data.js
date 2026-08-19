@@ -40,9 +40,11 @@ export const TOTAL_AGENTS = 612
 export const SET = { confirmed: 30, inferred: 4, unresolved: 3 }
 export const MARKETING_IN_SCOPE = SET.confirmed + SET.inferred // 34
 
-// Agents with nobody accountable, split by why.
-export const UNOWNED = { left: 6, noHr: 3, never: 2 }
-export const UNOWNED_TOTAL = UNOWNED.left + UNOWNED.noHr + UNOWNED.never // 11
+// Agents with nobody accountable, split by why. 92 of 612 is 15 percent: above the 8 percent
+// of identities Veza measured with no HR link, and far below what the CSA survey implies for
+// agents, where a third of organisations have ownership defined for only a quarter of them.
+export const UNOWNED = { left: 48, noHr: 27, never: 17 }
+export const UNOWNED_TOTAL = UNOWNED.left + UNOWNED.noHr + UNOWNED.never // 92
 
 function ownerFor(i) {
   return `${FIRST[i % FIRST.length]} ${LAST[(i * 7) % LAST.length]}`
@@ -167,33 +169,164 @@ function buildAgents() {
   return rows
 }
 
-export const AGENTS = buildAgents().map((a) => ({
-  ...a,
-  lastUsed: fmt(a.lastUsedTs),
-  created: fmt(a.createdTs),
-}))
+// Targets for the whole estate. Shares follow the same split the wireframe carried, only now
+// they are produced by counting agents rather than written down.
+const VIOLATION_TARGETS = { excess: 134, path: 67, outside: 61 }
+const THREAT_TARGETS = { admin: 11, unapproved: 9, prompt: 6 }
+const SEVERITY_MIX = {
+  excess: ['Critical', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
+  owner: ['Critical', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
+  path: ['Critical', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
+  outside: ['Critical', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low'],
+}
+
+function withViolations(rows) {
+  const severityFor = (type, i) => SEVERITY_MIX[type][i % SEVERITY_MIX[type].length]
+  const add = (agent, type, i) => {
+    agent.violations.push({ type, severity: severityFor(type, i) })
+  }
+  rows.forEach((a) => {
+    a.violations = []
+    a.threats = []
+  })
+
+  // Every agent nobody owns carries the ownership violation, so the widget and the table can
+  // never disagree: both count the same rows.
+  let n = 0
+  rows.forEach((a) => {
+    if (!a.owner) add(a, 'owner', n++)
+  })
+
+  // The weak path belongs to the marketing set first, MKT-01 is one of the eight policies.
+  const marketing = rows.filter((a) => a.inScope)
+  const others = rows.filter((a) => !a.inScope)
+  const pathAgents = [...marketing, ...others.slice(0, VIOLATION_TARGETS.path - marketing.length)]
+  pathAgents.forEach((a, i) => add(a, 'path', i))
+
+  const pool = (skip, count) => others.slice(skip, skip + count)
+  pool(120, VIOLATION_TARGETS.excess).forEach((a, i) => add(a, 'excess', i))
+  pool(300, VIOLATION_TARGETS.outside).forEach((a, i) => add(a, 'outside', i))
+
+  pool(40, THREAT_TARGETS.admin).forEach((a) => a.threats.push('admin'))
+  pool(60, THREAT_TARGETS.unapproved).forEach((a) => a.threats.push('unapproved'))
+  pool(80, THREAT_TARGETS.prompt).forEach((a) => a.threats.push('prompt'))
+  return rows
+}
+
+export const AGENTS = withViolations(
+  buildAgents().map((a) => ({
+    ...a,
+    lastUsed: fmt(a.lastUsedTs),
+    created: fmt(a.createdTs),
+  })),
+)
+
+// Everything the widgets show is derived from the estate above, so applying a change moves
+// the numbers instead of leaving them frozen.
+export function computeStats(agents) {
+  const byType = VIOLATION_TYPES.map((t) => ({ ...t, count: 0 }))
+  const bySeverity = SEVERITIES.map((s) => ({ label: s.key, color: s.color, count: 0 }))
+  let open = 0
+  agents.forEach((a) => {
+    a.violations.forEach((v) => {
+      open++
+      const t = byType.find((x) => x.key === v.type)
+      if (t) t.count++
+      const s = bySeverity.find((x) => x.label === v.severity)
+      if (s) s.count++
+    })
+  })
+  const withType = (key) => agents.filter((a) => a.violations.some((v) => v.type === key)).length
+  const unowned = { left: 0, noHr: 0, never: 0 }
+  agents.forEach((a) => {
+    if (!a.owner && a.ownerGap) unowned[a.ownerGap]++
+  })
+  const threats = THREAT_TYPES.map((t) => ({
+    ...t,
+    count: agents.filter((a) => a.threats.includes(t.key)).length,
+  }))
+  return {
+    open,
+    byType: byType.map((t) => ({ ...t, share: open ? Math.round((t.count / open) * 100) : 0 })),
+    bySeverity,
+    threats,
+    threatTotal: threats.reduce((sum, t) => sum + t.count, 0),
+    unowned: { ...unowned, total: unowned.left + unowned.noHr + unowned.never },
+    weakPath: withType('path'),
+    marketingInScope: agents.filter((a) => a.inScope).length,
+  }
+}
+
+// What each finding actually clears when it is applied.
+export const FIX_EFFECTS = {
+  f1: { violation: 'excess', agents: 12 },
+  f2: { violation: 'excess', agents: 4, threat: 'admin' },
+  f3: { violation: 'path', agents: 34 },
+  f4: { violation: 'outside', agents: 6 },
+  f5: { violation: 'excess', agents: 2 },
+  f6: { violation: 'excess', agents: 5 },
+  f7: { threat: 'prompt', agents: 1 },
+  t1: { violation: 'outside', agents: 3, threat: 'unapproved' },
+  o2: { violation: 'excess', agents: 12 },
+  o3: { violation: 'owner', agents: 5 },
+  p2: { violation: 'path', agents: 33 },
+}
+
+// Applying is a real edit of the estate: the violations it names are removed from that many
+// agents, and every widget recounts.
+export function applyFixes(agents, findingIds) {
+  const effects = findingIds.map((id) => FIX_EFFECTS[id]).filter(Boolean)
+  if (!effects.length) return agents
+  const budget = new Map()
+  const threatBudget = new Map()
+  effects.forEach((e) => {
+    if (e.violation) budget.set(e.violation, (budget.get(e.violation) || 0) + e.agents)
+    if (e.threat) threatBudget.set(e.threat, (threatBudget.get(e.threat) || 0) + e.agents)
+  })
+  return agents.map((a) => {
+    let violations = a.violations
+    let threats = a.threats
+    violations = violations.filter((v) => {
+      const left = budget.get(v.type) || 0
+      if (left > 0) {
+        budget.set(v.type, left - 1)
+        return false
+      }
+      return true
+    })
+    threats = threats.filter((t) => {
+      const left = threatBudget.get(t) || 0
+      if (left > 0) {
+        threatBudget.set(t, left - 1)
+        return false
+      }
+      return true
+    })
+    return violations === a.violations && threats === a.threats ? a : { ...a, violations, threats }
+  })
+}
 export const MARKETING_AGENTS = AGENTS.filter((a) => a.inScope)
 export const UNRESOLVED_AGENTS = AGENTS.filter((a) => a.unresolved)
 export const UNOWNED_AGENTS = AGENTS.filter((a) => !a.owner)
 
-export const THREATS = [
-  { severity: 'Critical', label: 'Agent used admin-level access', count: 4 },
-  { severity: 'High', label: 'Agent reached an unapproved app', count: 3 },
-  { severity: 'Medium', label: 'Prompt-exposed credential', count: 1 },
+export const VIOLATION_TYPES = [
+  { key: 'excess', label: 'Excessive permissions', color: '#1677ff' },
+  { key: 'owner', label: 'No accountable owner', color: '#69b1ff' },
+  { key: 'path', label: 'Weak policy path', color: '#91caff' },
+  { key: 'outside', label: 'Outside policy', color: '#d9d9d9' },
 ]
 
-export const BY_SEVERITY = [
-  { label: 'Critical', count: 3, color: '#cf1322' },
-  { label: 'High', count: 9, color: '#fa8c16' },
-  { label: 'Medium', count: 19, color: '#faad14' },
-  { label: 'Low', count: 12, color: '#d9d9d9' },
+export const SEVERITIES = [
+  { key: 'Critical', color: '#cf1322' },
+  { key: 'High', color: '#fa8c16' },
+  { key: 'Medium', color: '#faad14' },
+  { key: 'Low', color: '#d9d9d9' },
 ]
 
-export const BY_TYPE = [
-  { label: 'Excessive permissions', share: 38, color: '#1677ff' },
-  { label: 'No accountable owner', share: 26, color: '#69b1ff' },
-  { label: 'Weak policy path', share: 19, color: '#91caff' },
-  { label: 'Outside policy', share: 17, color: '#d9d9d9' },
+export const THREAT_TYPES = [
+  { key: 'admin', severity: 'Critical', label: 'Agent used admin-level access' },
+  { key: 'unapproved', severity: 'High', label: 'Agent reached an unapproved app' },
+  { key: 'prompt', severity: 'Medium', label: 'Prompt-exposed credential' },
 ]
 
 // Ten readings between 19 May and 11 Aug 2026, so every point on the chart has a real date.
@@ -215,12 +348,17 @@ export const TREND = {
   delta: TREND_OPEN[TREND_OPEN.length - 1] - TREND_OPEN[0],
 }
 
-export const OPEN_FINDINGS = BY_SEVERITY.reduce((s, x) => s + x.count, 0) // 43
+const S0 = computeStats(AGENTS)
+export const OPEN_FINDINGS = S0.open
 
 // What the assistant proposes on an untouched page.
 export const SUGGESTIONS = [
   { id: 'harden', title: 'Harden access for marketing agents', sub: '34 agents, 8 findings across 4 apps and 2 policies' },
-  { id: 'owners', title: 'Find an owner for 11 agents', sub: '6 owners left the company, 3 have no HR record' },
+  {
+    id: 'owners',
+    title: `Find an owner for ${UNOWNED_TOTAL} agents`,
+    sub: `${UNOWNED.left} owners left the company, ${UNOWNED.noHr} have no HR record`,
+  },
   { id: 'path', title: 'Remove the weak path from MKT-01', sub: 'password + OTP is the only path an agent can take' },
 ]
 
@@ -360,32 +498,32 @@ export const EXTRA_FINDINGS = [
   },
   {
     id: 'o1',
-    title: 'Ask the manager of each departed owner',
+    title: `Ask the manager of each departed owner`,
     where: 'Ownership',
-    basis: '6 agents lost their owner when the person left. Their manager is the closest human who can name a new one.',
+    basis: `${UNOWNED.left} agents lost their owner when the person left. Their manager is the closest human who can name a new one.`,
     cost: 'Nothing changes until a person answers.',
-    scope: 6,
+    scope: UNOWNED.left,
     approval: true,
     on: true,
     email: true,
   },
   {
     id: 'o2',
-    title: 'Move write tools to ask on 4 idle agents',
+    title: 'Move write tools to ask on 12 idle agents',
     where: '3 apps',
     basis: 'No owner and no call in more than 2 months, so a wrong write would have nobody to answer for it.',
     cost: 'If one of them wakes up, its first write waits for a human. Reversible.',
-    scope: 4,
+    scope: 12,
     approval: false,
     on: true,
   },
   {
     id: 'o3',
-    title: 'Decommission 2 agents that never had an owner',
+    title: 'Decommission 5 agents that never had an owner',
     where: 'Salesforce, Jira',
     basis: 'Created by a person who never appeared in HR, no call in 6 months.',
     cost: 'This one is hard to undo. Credentials are revoked and the runtime is stopped.',
-    scope: 2,
+    scope: 5,
     approval: true,
     on: false,
   },
@@ -426,71 +564,80 @@ export const SCENARIOS = {
   },
   threats: {
     title: 'Threats detected in the last 5 days',
-    reading: ['8 threats in 5 days, grouped by what caused them.', 'They come from 6 agents, and 4 of those sit in one team.'],
-    setTitle: '8 threats from 6 agents',
+    reading: [
+      `${S0.threatTotal} threats in 5 days, grouped by what caused them.`,
+      `They come from ${S0.threatTotal} agents, and a quarter of those sit in one team.`,
+    ],
+    setTitle: `${S0.threatTotal} threats from ${S0.threatTotal} agents`,
     setNote: 'A threat is an event that already happened, so the question is what to change now.',
     rows: [
-      ['Agent used admin-level access', 4, 'admin profile assigned through a group'],
-      ['Agent reached an unapproved app', 3, 'app missing from the policy of that department'],
-      ['Prompt-exposed credential', 1, 'the secret appeared in a prompt log'],
+      ['Agent used admin-level access', S0.threats[0].count, 'admin profile assigned through a group'],
+      ['Agent reached an unapproved app', S0.threats[1].count, 'app missing from the policy of that department'],
+      ['Prompt-exposed credential', S0.threats[2].count, 'the secret appeared in a prompt log'],
     ],
-    blind: '2 of the 6 agents have no owner, so there is nobody to approve a change that breaks their work.',
+    blind: 'Some of these agents have no owner, so there is nobody to approve a change that breaks their work.',
     findings: ['f2', 't1', 'f7'],
-    blindNote: '2 of the 6 agents have no owner, so their part of this is still open.',
+    blindNote: 'The agents among these that have no owner are still open, nobody can approve a change on them.',
   },
   severity: {
-    title: '43 open violations',
-    reading: ['43 open violations, ordered by what it takes to close them.', '31 of them sit on 3 policies, so three changes cover most of the list.'],
-    setTitle: '43 open violations',
+    title: `${S0.open} open violations`,
+    reading: [
+      `${S0.open} open violations, ordered by what it takes to close them.`,
+      'A third of them sit on three policies, so three changes cover a large part of the list.',
+    ],
+    setTitle: `${S0.open} open violations`,
     setNote: 'Severity says how loud a violation is, not how hard it is to close. This set is ordered by the second one.',
     rows: [
-      ['Critical', 3, 'admin access and an exposed credential'],
-      ['High', 9, 'write tools nobody uses'],
-      ['Medium', 19, 'access outside policy'],
-      ['Low', 12, 'unused tools inside the profile'],
+      ['Critical', S0.bySeverity[0].count, 'admin access and an exposed credential'],
+      ['High', S0.bySeverity[1].count, 'write tools nobody uses'],
+      ['Medium', S0.bySeverity[2].count, 'access outside policy'],
+      ['Low', S0.bySeverity[3].count, 'unused tools inside the profile'],
     ],
-    blind: 'The 12 low violations are not touched here. They stay in the queue with their reason attached.',
+    blind: `The ${S0.bySeverity[3].count} low violations are not touched here. They stay in the queue with their reason attached.`,
     findings: ['f3', 'f1', 'f4'],
-    blindNote: '12 low violations were left in the queue on purpose.',
+    blindNote: `${S0.bySeverity[3].count} low violations were left in the queue on purpose.`,
   },
   type: {
     title: 'Violations by type',
     reading: ['Grouped by what is wrong, not by how loud it is.', 'Excessive permissions is the largest group at 38 percent.'],
-    setTitle: '43 violations in 4 groups',
+    setTitle: `${S0.open} violations in 4 groups`,
     setNote: 'Type tells you which change closes a whole group at once.',
     rows: [
-      ['Excessive permissions', 16, 'tools in the profile with no call in 90 days'],
-      ['No accountable owner', 11, 'nobody answers for the agent'],
-      ['Weak policy path', 8, 'the agent can only take the weakest path'],
-      ['Outside policy', 8, 'reached an app the policy does not list'],
+      ['Excessive permissions', S0.byType[0].count, 'tools in the profile with no call in 90 days'],
+      ['No accountable owner', S0.byType[1].count, 'nobody answers for the agent'],
+      ['Weak policy path', S0.byType[2].count, 'the agent can only take the weakest path'],
+      ['Outside policy', S0.byType[3].count, 'reached an app the policy does not list'],
     ],
     blind: 'Outside policy findings need the app owner to answer, so they cannot all be closed from this screen.',
     findings: ['f1', 'f6', 'f4'],
     blindNote: 'Outside policy findings wait on app owners and are not closed here.',
   },
   owners: {
-    title: 'Find an owner for 11 agents',
-    reading: ['11 agents have nobody accountable.', 'For 6 of them the owner left the company, so their manager is the closest human.'],
-    setTitle: '11 agents without an owner',
+    title: `Find an owner for ${UNOWNED_TOTAL} agents`,
+    reading: [
+      `${UNOWNED_TOTAL} agents have nobody accountable.`,
+      `For ${UNOWNED.left} of them the owner left the company, so their manager is the closest human.`,
+    ],
+    setTitle: `${UNOWNED_TOTAL} agents without an owner`,
     setNote: 'Ownership is the field everything else hangs on. Without it a department cannot be derived and an approval has nobody to go to.',
     rows: [
       ['Owner left the company', UNOWNED.left, 'the human record is gone, the manager remains'],
       ['Owner has no HR record', UNOWNED.noHr, 'the owner exists in the app but not in HR'],
       ['Never had an owner', UNOWNED.never, 'created without an owner and never claimed'],
     ],
-    blind: '3 of these 11 are also the agents that could not be placed in any department.',
+    blind: `3 of these ${UNOWNED_TOTAL} are also the agents that could not be placed in any department.`,
     findings: ['o1', 'o2', 'o3'],
     scope: 'unowned',
-    blindNote: '3 of the 11 are still unplaced in any department until a person answers.',
+    blindNote: `3 of the ${UNOWNED_TOTAL} are still unplaced in any department until a person answers.`,
   },
   path: {
     title: 'Remove the weak path from MKT-01',
     reading: ['A policy accepts several ways in and any one of them is enough.', 'An agent has no phone and no inbox, so it can only take the weakest one.'],
-    setTitle: '8 policies with a weaker agent path',
+    setTitle: `8 policies with a weaker agent path, ${S0.weakPath} agents`,
     setNote: 'The policy looks strong because it lists a security key. No agent can present one.',
     rows: [
       ['Agents on MKT-01', MARKETING_IN_SCOPE, 'all of them sign in with password and OTP'],
-      ['Policies with the same shape', 7, 'a strong path exists that no agent can use'],
+      ['Agents on the other 7 policies', S0.weakPath - MARKETING_IN_SCOPE, 'same shape, a strong path no agent can present'],
     ],
     blind: '2 of the 8 policies are managed outside NewCore, so they can be flagged here but not changed.',
     findings: ['f3', 'p2'],

@@ -71,6 +71,7 @@ export default function AccessPanel({
   updateChat,
   openChat,
   applyFilters,
+  onApplied,
   scopeFilters,
   tableAttached,
   onDetachTable,
@@ -142,14 +143,15 @@ export default function AccessPanel({
         }))
       }, 350 + i * 420),
     )
-    const done = setTimeout(
-      () =>
-        updateChat(chat.id, (prev) => ({
-          step: 'done',
-          messages: [...prev.messages, { role: 'assistant', kind: 'result' }],
-        })),
-      350 + chosen.length * 420 + 400,
-    )
+    const done = setTimeout(() => {
+      // Only what actually landed changes the estate. Waiting on a person and rejected by an
+      // app leave the numbers where they were.
+      onApplied(chosen.filter((f) => !f.email && f.id !== 'f4').map((f) => f.id))
+      updateChat(chat.id, (prev) => ({
+        step: 'done',
+        messages: [...prev.messages, { role: 'assistant', kind: 'result' }],
+      }))
+    }, 350 + chosen.length * 420 + 400)
     return () => {
       timers.forEach(clearTimeout)
       clearTimeout(done)
