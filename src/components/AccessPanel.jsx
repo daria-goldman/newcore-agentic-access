@@ -158,9 +158,9 @@ export default function AccessPanel({
               title: f.title,
               state: f.email ? 'waiting' : f.id === 'f4' ? 'failed' : 'applied',
               note: f.email
-                ? 'sent, nothing changes until a person answers'
+                ? 'Sent to the manager of the departed owner. Nothing changes for these agents until a person answers.'
                 : f.id === 'f4'
-                  ? 'the app rejected the change, its owner must approve'
+                  ? 'Google Drive returned a permission error: this folder is managed by its app owner, so removing access needs their approval.'
                   : null,
             },
           ],
@@ -436,7 +436,9 @@ export default function AccessPanel({
         </div>
       )
 
-    if (m.kind === 'applying')
+    if (m.kind === 'applying') {
+      // Once the result is written, this list would only repeat it.
+      if (step !== 'applying') return null
       return (
         <div style={{ marginBottom: 16 }}>
           <Progress percent={Math.round((chat.applied.length / Math.max(chosen.length, 1)) * 100)} showInfo={false} />
@@ -456,36 +458,67 @@ export default function AccessPanel({
           </div>
         </div>
       )
+    }
 
-    if (m.kind === 'result')
+    if (m.kind === 'result') {
+      const applied = chat.applied.filter((a) => a.state === 'applied')
+      const pending = chat.applied.filter((a) => a.state !== 'applied')
+      const waiting = pending.filter((a) => a.state === 'waiting')
       return (
         <div className="step" style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 15, fontWeight: 600 }}>
-            {chat.applied.filter((a) => a.state === 'applied').length} changes applied
+            {applied.length} of {chat.applied.length} changes applied
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 12px' }}>
-            What follows is the part that is not done, on purpose.
-          </div>
-          {chat.applied.map((a) => (
-            <div key={a.id} className="result-line">
-              {a.state === 'applied' ? (
+          <div style={{ marginTop: 8 }}>
+            {applied.map((a) => (
+              <div key={a.id} className="result-line">
                 <CheckCircleFilled style={{ color: '#52c41a' }} />
-              ) : a.state === 'waiting' ? (
-                <ClockCircleFilled style={{ color: '#faad14' }} />
-              ) : (
-                <CloseCircleFilled style={{ color: '#cf1322' }} />
-              )}
-              <span>
-                {a.title}
-                {a.note ? <span className="dept-soft"> · {a.note}</span> : null}
-              </span>
-            </div>
-          ))}
-          <div className="blind" style={{ marginTop: 12 }}>
-            <b>{scenario.blindNote}</b> This screen does not call the job done.
+                <span>{a.title}</span>
+              </div>
+            ))}
+          </div>
+
+          {pending.length ? (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 600, margin: '14px 0 6px' }}>Needs a person</div>
+              {pending.map((a) => (
+                <div key={a.id} className="pending">
+                  <div className="result-line">
+                    {a.state === 'waiting' ? (
+                      <ClockCircleFilled style={{ color: '#faad14' }} />
+                    ) : (
+                      <CloseCircleFilled style={{ color: '#cf1322' }} />
+                    )}
+                    <span>{a.title}</span>
+                  </div>
+                  {a.note ? <div className="pending-note">{a.note}</div> : null}
+                  <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
+                    {a.state === 'waiting' ? 'See the request' : 'Ask the app owner to approve'}
+                  </Button>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          <div className="blind" style={{ marginTop: 14 }}>
+            <b>
+              {waiting.length
+                ? 'Three agents nobody owns are waiting for a person to name an owner.'
+                : scenario.blindNote}
+            </b>{' '}
+            Until someone answers, they stay outside every change made here. This screen does not call
+            the job done.
+            {scenario.blindFilter ? (
+              <div style={{ marginTop: 6 }}>
+                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => applyFilters(scenario.blindFilter)}>
+                  {scenario.blindFilterLabel}
+                </Button>
+              </div>
+            ) : null}
           </div>
         </div>
       )
+    }
 
     return null
   }
