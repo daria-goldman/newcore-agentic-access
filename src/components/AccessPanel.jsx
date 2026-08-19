@@ -15,7 +15,7 @@ import {
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
-import { answerFor, countMatching, isClearCommand, parseQuery } from '../query.js'
+import { answerFor, countMatching, isClearCommand, parseQuery, tableRequest } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
 const SUGGESTION_ICON = { harden: <ShieldCheckIcon />, owners: <AccountIcon />, path: <RouteIcon /> }
@@ -233,6 +233,23 @@ export default function AccessPanel({
     if (aboutTable) {
       const text = typed || 'Show me agents with no owner'
       setDraft('')
+      // Inside an open chat the request continues it. Only a request with no chat behind it
+      // opens a new one.
+      if (view === 'chat' && chat) {
+        const payload = tableRequest(text)
+        if (payload.cleared) applyFilters({})
+        updateChat(chat.id, (prev) => ({
+          step: 'thinking',
+          pending: 'filterResult',
+          messages: [
+            ...prev.messages,
+            { role: 'user', text, chips: tableAttached ? ['Agents table'] : [] },
+            { role: 'assistant', kind: 'thinking', payload },
+          ],
+        }))
+        onDetachTable()
+        return
+      }
       startFilterChat(text)
       return
     }
@@ -270,13 +287,14 @@ export default function AccessPanel({
       return <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>{m.text}</div>
 
     if (m.kind === 'filterResult') {
-      if (chat.cleared)
+      const result = m.payload || {}
+      if (result.cleared)
         return (
           <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
-            Filters cleared. The table is back to all {chat.count} agents.
+            Filters cleared. The table is back to all {result.count} agents.
           </div>
         )
-      if (chat.count === null)
+      if (result.count === null)
         return (
           <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
             I could not turn that into a filter. Name a department, a risk level, a status, or say something like
@@ -285,12 +303,12 @@ export default function AccessPanel({
         )
       return (
         <div className="step" style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>{chat.count} agents match</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>{result.count} agents match</div>
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 8px' }}>
             Turned into these filters, the same ones you can set by hand.
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
-            {Object.entries(chat.parsed).flatMap(([key, values]) =>
+            {Object.entries(result.parsed).flatMap(([key, values]) =>
               values.map((v) => (
                 <Tag key={`${key}-${v}`} color="blue">
                   {v}
@@ -298,15 +316,17 @@ export default function AccessPanel({
               )),
             )}
           </div>
-          {chat.explanation?.note ? <div className="blind">{chat.explanation.note}</div> : null}
+          {result.explanation?.note ? <div className="blind">{result.explanation.note}</div> : null}
           <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            {chat.count > 0 ? (
-              <Button type="primary" onClick={() => applyFilters(chat.parsed)}>
-                Show them in the table
+            {result.count > 0 ? (
+              <Button type="primary" onClick={() => applyFilters(result.parsed)}>
+                Filter the table to these {result.count}
               </Button>
             ) : null}
-            {chat.explanation?.suggestion ? (
-              <Button onClick={() => applyFilters(chat.explanation.suggestion)}>{chat.explanation.suggestionLabel}</Button>
+            {result.explanation?.suggestion ? (
+              <Button onClick={() => applyFilters(result.explanation.suggestion)}>
+                {result.explanation.suggestionLabel}
+              </Button>
             ) : null}
           </div>
         </div>

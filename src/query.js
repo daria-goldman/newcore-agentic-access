@@ -180,3 +180,12 @@ export function explain(filters, count) {
   }
   return { note: 'Nothing matches this combination. Try removing one of the filters.', suggestion: null }
 }
+
+// One place that turns a typed request about the table into a result, used both when a request
+// opens a new chat and when it continues one that is already going.
+export function tableRequest(text) {
+  const cleared = isClearCommand(text)
+  const parsed = cleared ? {} : parseQuery(text)
+  const count = cleared ? countMatching({}) : Object.keys(parsed).length ? countMatching(parsed) : null
+  return { parsed, count, cleared, explanation: cleared || count === null ? null : explain(parsed, count) }
+}
