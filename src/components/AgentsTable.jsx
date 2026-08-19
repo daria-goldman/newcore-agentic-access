@@ -1,9 +1,45 @@
 import React, { useMemo, useState } from 'react'
-import { Button, Dropdown, Input, Select, Table, Tag, Tooltip } from 'antd'
-import { CloseOutlined, DownOutlined, SearchOutlined, SettingOutlined, ThunderboltOutlined } from '@ant-design/icons'
+import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
+import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { BULK_ACTIONS, TOTAL_AGENTS } from '../data.js'
 
 const riskColor = { High: 'red', Medium: 'gold', Low: 'default' }
+
+// Agent and Action are pinned: the first column says which identity a row is about and the last one
+// is how you act on it, so a table without either is not a table you can work in.
+// Owner cannot be hidden either. Ownership is the field every other decision hangs on, it is what
+// a department is derived from and who an approval is sent to. Risk was the runner up and stayed
+// optional, because you can already filter and sort by it.
+const COLUMN_DEFS = {
+  name: { title: 'Agent', width: 190, pinned: 'first' },
+  dept: { title: 'Department', width: 200, filter: 'dept' },
+  owner: { title: 'Owner', width: 190, filter: 'owner', required: true },
+  risk: { title: 'Risk', width: 110, filter: 'risk' },
+  usage: { title: 'Usage', width: 110, filter: 'usage' },
+  status: { title: 'Status', width: 120, filter: 'status' },
+  action: { title: 'Action', width: 110, pinned: 'last' },
+}
+const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'action']
+
+const FILTER_DEFS = {
+  dept: {
+    label: 'Department',
+    options: ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People', 'Not derived'],
+    match: (r, v) => (v === 'Not derived' ? r.dept.kind === 'suggested' : r.dept.kind !== 'suggested' && r.dept.value === v),
+  },
+  owner: {
+    label: 'Owner',
+    options: ['Has an owner', 'No owner'],
+    match: (r, v) => (v === 'No owner' ? !r.owner : !!r.owner),
+  },
+  risk: { label: 'Risk', options: ['High', 'Medium', 'Low'], match: (r, v) => r.risk === v },
+  usage: {
+    label: 'Usage',
+    options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'],
+    match: (r, v) => r.usage === v,
+  },
+  status: { label: 'Status', options: ['Active', 'On review'], match: (r, v) => r.status === v },
+}
 
 function Department({ dept }) {
   if (dept.kind === 'suggested') {
@@ -31,33 +67,117 @@ function Department({ dept }) {
   )
 }
 
+function ColumnManager({ order, setOrder, hidden, setHidden }) {
+  const [dragKey, setDragKey] = useState(null)
+  const movable = order.filter((k) => !COLUMN_DEFS[k].pinned)
+
+  const drop = (target) => {
+    if (!dragKey || dragKey === target) return
+    const next = movable.filter((k) => k !== dragKey)
+    next.splice(next.indexOf(target), 0, dragKey)
+    setOrder(['name', ...next, 'action'])
+    setDragKey(null)
+  }
+
+  const row = (key, draggable) => {
+    const def = COLUMN_DEFS[key]
+    const locked = Boolean(def.pinned) || def.required
+    return (
+      <div
+        key={key}
+        className={`col-row${draggable ? ' draggable' : ''}${dragKey === key ? ' dragging' : ''}`}
+        draggable={draggable}
+        onDragStart={() => setDragKey(key)}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={() => drop(key)}
+      >
+        <span className="col-handle">{draggable ? <HolderOutlined /> : <LockOutlined />}</span>
+        <Checkbox
+          checked={!hidden.includes(key)}
+          disabled={locked}
+          onChange={(e) => setHidden(e.target.checked ? hidden.filter((k) => k !== key) : [...hidden, key])}
+        >
+          {def.title}
+        </Checkbox>
+        {def.pinned ? <span className="col-note">{def.pinned === 'first' ? 'always first' : 'always last'}</span> : null}
+        {def.required && !def.pinned ? <span className="col-note">always shown</span> : null}
+      </div>
+    )
+  }
+
+  return (
+    <div className="col-manager">
+      <div className="col-manager-head">Columns</div>
+      {row('name', false)}
+      {movable.map((k) => row(k, true))}
+      {row('action', false)}
+      <div className="col-manager-foot">
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => { setOrder(DEFAULT_ORDER); setHidden([]) }}>
+          Reset
+        </Button>
+      </div>
+    </div>
+  )
+}
+
 export default function AgentsTable({ rows, selected, onSelected, scope, onClearScope, onBulk, onManage, onAskAi }) {
   const [query, setQuery] = useState('')
-  const [risk, setRisk] = useState('all')
+  const [filters, setFilters] = useState({})
+  const [order, setOrder] = useState(DEFAULT_ORDER)
+  const [hidden, setHidden] = useState([])
 
-  const data = useMemo(() => {
-    let out = rows
-    if (query.trim()) {
-      const q = query.trim().toLowerCase()
-      out = out.filter((r) => r.name.includes(q) || (r.owner || '').toLowerCase().includes(q))
+  const searched = useMemo(() => {
+    if (!query.trim()) return rows
+    const q = query.trim().toLowerCase()
+    return rows.filter((r) => r.name.includes(q) || (r.owner || '').toLowerCase().includes(q))
+  }, [rows, query])
+
+  const activeChips = Object.entries(filters).flatMap(([key, values]) =>
+    (values || []).map((v) => ({ key, value: v, label: `${FILTER_DEFS[key].label}: ${v}` })),
+  )
+
+  const removeChip = (key, value) =>
+    setFilters((prev) => ({ ...prev, [key]: (prev[key] || []).filter((v) => v !== value) }))
+
+  const setFilterValues = (key, values) => setFilters((prev) => ({ ...prev, [key]: values }))
+
+  const filtersMenu = (
+    <div className="filter-panel">
+      {Object.entries(FILTER_DEFS).map(([key, def]) => (
+        <div key={key} className="filter-group">
+          <div className="filter-group-title">{def.label}</div>
+          <Checkbox.Group
+            value={filters[key] || []}
+            onChange={(values) => setFilterValues(key, values)}
+            options={def.options.map((o) => ({ label: o, value: o }))}
+          />
+        </div>
+      ))}
+      <div className="col-manager-foot">
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setFilters({})}>
+          Clear all
+        </Button>
+      </div>
+    </div>
+  )
+
+  const buildColumn = (key) => {
+    const def = COLUMN_DEFS[key]
+    const filterKey = def.filter
+    const base = {
+      key,
+      title: key === 'name' ? `Agent (${scope ? rows.length : TOTAL_AGENTS})` : def.title,
+      dataIndex: key === 'action' ? undefined : key,
+      width: def.width,
     }
-    if (risk !== 'all') out = out.filter((r) => r.risk === risk)
-    return out
-  }, [rows, query, risk])
-
-  const columns = [
-    {
-      title: `Agent (${scope ? rows.length : TOTAL_AGENTS})`,
-      dataIndex: 'name',
-      width: 190,
-      render: (v) => <span style={{ fontVariantLigatures: 'none' }}>{v}</span>,
-    },
-    { title: 'Department', dataIndex: 'dept', width: 200, render: (dept) => <Department dept={dept} /> },
-    {
-      title: 'Owner',
-      dataIndex: 'owner',
-      width: 190,
-      render: (owner, r) =>
+    if (filterKey) {
+      base.filters = FILTER_DEFS[filterKey].options.map((o) => ({ text: o, value: o }))
+      base.filteredValue = filters[filterKey] || null
+      base.onFilter = (value, record) => FILTER_DEFS[filterKey].match(record, value)
+    }
+    if (key === 'dept') base.render = (dept) => <Department dept={dept} />
+    if (key === 'owner')
+      base.render = (owner, r) =>
         owner ? (
           <span>
             {owner}
@@ -65,31 +185,26 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
           </span>
         ) : (
           <span className="dept-soft">{r.ownerNote}</span>
-        ),
-    },
-    { title: 'Risk', dataIndex: 'risk', width: 96, render: (v) => <Tag color={riskColor[v]}>{v}</Tag> },
-    { title: 'Usage', dataIndex: 'usage', width: 100 },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      width: 110,
-      render: (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>,
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      width: 110,
-      render: (_, r) => (
+        )
+    if (key === 'risk') base.render = (v) => <Tag color={riskColor[v]}>{v}</Tag>
+    if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
+    if (key === 'action')
+      base.render = (_, r) => (
         <Dropdown
-          menu={{ items: BULK_ACTIONS.map((a) => ({ key: a.key, label: a.label, danger: a.danger })), onClick: ({ key }) => onBulk(key, [r.key]) }}
+          menu={{
+            items: BULK_ACTIONS.map((a) => ({ key: a.key, label: a.label, danger: a.danger })),
+            onClick: ({ key: k }) => onBulk(k, [r.key]),
+          }}
         >
           <Button type="link" size="small" style={{ padding: 0 }}>
             Actions <DownOutlined style={{ fontSize: 10 }} />
           </Button>
         </Dropdown>
-      ),
-    },
-  ]
+      )
+    return base
+  }
+
+  const columns = order.filter((k) => !hidden.includes(k)).map(buildColumn)
 
   return (
     <div>
@@ -98,39 +213,48 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
           allowClear
           prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
           placeholder="Search agents"
-          style={{ width: 240 }}
+          style={{ width: 220 }}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <Select
-          value={risk}
-          style={{ width: 150 }}
-          onChange={setRisk}
-          options={[
-            { value: 'all', label: 'All risk levels' },
-            { value: 'High', label: 'High' },
-            { value: 'Medium', label: 'Medium' },
-            { value: 'Low', label: 'Low' },
-          ]}
-        />
-        <span className="toolbar-grow" />
-        <Button type="primary" ghost icon={<ThunderboltOutlined />} onClick={onAskAi}>
+        <Dropdown popupRender={() => filtersMenu} trigger={['click']} placement="bottomLeft">
+          <Button>
+            Filters {activeChips.length ? <Tag color="blue" style={{ marginInlineEnd: 0 }}>{activeChips.length}</Tag> : null}
+            <DownOutlined style={{ fontSize: 10 }} />
+          </Button>
+        </Dropdown>
+        <Button type="primary" ghost onClick={onAskAi}>
           Filter with Access AI
         </Button>
-        <Tooltip title="Columns">
-          <Button icon={<SettingOutlined />} />
-        </Tooltip>
+        <span className="toolbar-grow" />
+        <Dropdown
+          popupRender={() => <ColumnManager order={order} setOrder={setOrder} hidden={hidden} setHidden={setHidden} />}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Tooltip title="Columns">
+            <Button icon={<SettingOutlined />} />
+          </Tooltip>
+        </Dropdown>
       </div>
 
-      {scope ? (
-        <div className="bulkbar scope-chip" style={{ background: '#fafafa', borderColor: '#f0f0f0' }}>
-          <span style={{ fontSize: 13 }}>
-            <b>{scope.label}</b> <span className="dept-soft">· set built from the owner of each agent, not from a field</span>
-          </span>
-          <span className="toolbar-grow" />
-          <Button size="small" type="text" icon={<CloseOutlined />} onClick={onClearScope}>
-            Clear
-          </Button>
+      {activeChips.length || scope ? (
+        <div className="chips-row">
+          {scope ? (
+            <Tag color="blue" closable onClose={onClearScope}>
+              {scope.label}
+            </Tag>
+          ) : null}
+          {activeChips.map((c) => (
+            <Tag key={`${c.key}-${c.value}`} color="blue" closable onClose={() => removeChip(c.key, c.value)}>
+              {c.label}
+            </Tag>
+          ))}
+          {activeChips.length > 1 ? (
+            <Button type="link" size="small" onClick={() => setFilters({})}>
+              Clear all
+            </Button>
+          ) : null}
         </div>
       ) : null}
 
@@ -138,7 +262,12 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
         <div className="bulkbar">
           <b>{selected.length} agents selected</b>
           <span className="toolbar-grow" />
-          <Dropdown menu={{ items: BULK_ACTIONS.map((a) => ({ key: a.key, label: a.label, danger: a.danger })), onClick: ({ key }) => onBulk(key, selected) }}>
+          <Dropdown
+            menu={{
+              items: BULK_ACTIONS.map((a) => ({ key: a.key, label: a.label, danger: a.danger })),
+              onClick: ({ key }) => onBulk(key, selected),
+            }}
+          >
             <Button size="small">
               Edit in bulk <DownOutlined style={{ fontSize: 10 }} />
             </Button>
@@ -156,8 +285,15 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
         size="middle"
         rowKey="key"
         columns={columns}
-        dataSource={data}
-        rowClassName={(r) => (r.inScope && scope ? 'row-in-scope' : '')}
+        dataSource={searched}
+        onChange={(_p, tableFilters) => {
+          const next = {}
+          Object.entries(tableFilters).forEach(([colKey, values]) => {
+            const filterKey = COLUMN_DEFS[colKey]?.filter
+            if (filterKey) next[filterKey] = values || []
+          })
+          setFilters(next)
+        }}
         rowSelection={{ selectedRowKeys: selected, onChange: onSelected, preserveSelectedRowKeys: true }}
         pagination={{ pageSize: 8, showSizeChanger: false, size: 'small' }}
       />

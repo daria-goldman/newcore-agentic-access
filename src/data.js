@@ -274,3 +274,165 @@ export const BULK_ACTIONS = [
   { key: 'suspend', label: 'Suspend' },
   { key: 'decommission', label: 'Decommission', danger: true },
 ]
+
+// Findings that belong to the smaller widget scenarios.
+export const EXTRA_FINDINGS = [
+  {
+    id: 't1',
+    title: 'Block the unapproved app for 3 agents',
+    where: 'Notion',
+    basis: 'The app is not listed in the policy for their department and was reached 14 times in 5 days.',
+    cost: '1 agent writes a weekly digest there and will fail until the app is approved or the tool is removed.',
+    scope: 3,
+    approval: true,
+    on: true,
+  },
+  {
+    id: 'o1',
+    title: 'Ask the manager of each departed owner',
+    where: 'Ownership',
+    basis: '6 agents lost their owner when the person left. Their manager is the closest human who can name a new one.',
+    cost: 'Nothing changes until a person answers.',
+    scope: 6,
+    approval: true,
+    on: true,
+    email: true,
+  },
+  {
+    id: 'o2',
+    title: 'Move write tools to ask on 4 idle agents',
+    where: '3 apps',
+    basis: 'No owner and no call in more than 2 months, so a wrong write would have nobody to answer for it.',
+    cost: 'If one of them wakes up, its first write waits for a human. Reversible.',
+    scope: 4,
+    approval: false,
+    on: true,
+  },
+  {
+    id: 'o3',
+    title: 'Decommission 2 agents that never had an owner',
+    where: 'Salesforce, Jira',
+    basis: 'Created by a person who never appeared in HR, no call in 6 months.',
+    cost: 'This one is hard to undo. Credentials are revoked and the runtime is stopped.',
+    scope: 2,
+    approval: true,
+    on: false,
+  },
+  {
+    id: 'p2',
+    title: 'Move 7 more policies to a workload credential',
+    where: '7 policies',
+    basis: 'Same shape as MKT-01: a strong path exists but no agent can present it.',
+    cost: 'Each policy needs its app owner to confirm before the next token refresh.',
+    scope: 7,
+    approval: true,
+    on: false,
+  },
+]
+
+export const ALL_FINDINGS = [...FINDINGS, ...EXTRA_FINDINGS]
+
+// One object per subject the assistant can be asked about.
+export const SCENARIOS = {
+  harden: {
+    title: 'Harden access for marketing agents',
+    reading: [
+      'No agent carries a department, so I follow each agent to its owner.',
+      `${TOTAL_AGENTS} agents checked, 37 belong to someone in Marketing.`,
+      '3 of them have no owner at all, so they cannot be placed.',
+    ],
+    setTitle: `${MARKETING_IN_SCOPE} agents in scope`,
+    setNote: 'There is no department on an agent. This set is built through the human who owns it.',
+    rows: [
+      ['Owner sits in Marketing', SET.confirmed, 'derived from the owner record'],
+      ['Department inferred', SET.inferred, 'owner has no department, taken from their manager'],
+      ['Disputed', SET.disputed, 'owner is a contractor or sits in two departments'],
+    ],
+    blind:
+      '3 agents could not be placed. Nobody owns them, so their department is a guess from the apps they touch. They stay out of this change and become their own task.',
+    findings: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'],
+    scope: 'marketing',
+    blindNote: '3 agents were never checked. Nobody owns them, so they were left out of this change and now sit in their own task.',
+  },
+  threats: {
+    title: 'Threats detected in the last 5 days',
+    reading: ['8 threats in 5 days, grouped by what caused them.', 'They come from 6 agents, and 4 of those sit in one team.'],
+    setTitle: '8 threats from 6 agents',
+    setNote: 'A threat is an event that already happened, so the question is what to change now.',
+    rows: [
+      ['Agent used admin-level access', 4, 'admin profile assigned through a group'],
+      ['Agent reached an unapproved app', 3, 'app missing from the policy of that department'],
+      ['Prompt-exposed credential', 1, 'the secret appeared in a prompt log'],
+    ],
+    blind: '2 of the 6 agents have no owner, so there is nobody to approve a change that breaks their work.',
+    findings: ['f2', 't1', 'f7'],
+    blindNote: '2 of the 6 agents have no owner, so their part of this is still open.',
+  },
+  severity: {
+    title: '43 open violations',
+    reading: ['43 open violations, ordered by what it takes to close them.', '31 of them sit on 3 policies, so three changes cover most of the list.'],
+    setTitle: '43 open violations',
+    setNote: 'Severity says how loud a violation is, not how hard it is to close. This set is ordered by the second one.',
+    rows: [
+      ['Critical', 3, 'admin access and an exposed credential'],
+      ['High', 9, 'write tools nobody uses'],
+      ['Medium', 19, 'access outside policy'],
+      ['Low', 12, 'unused tools inside the profile'],
+    ],
+    blind: 'The 12 low violations are not touched here. They stay in the queue with their reason attached.',
+    findings: ['f3', 'f1', 'f4'],
+    blindNote: '12 low violations were left in the queue on purpose.',
+  },
+  type: {
+    title: 'Violations by type',
+    reading: ['Grouped by what is wrong, not by how loud it is.', 'Excessive permissions is the largest group at 38 percent.'],
+    setTitle: '43 violations in 4 groups',
+    setNote: 'Type tells you which change closes a whole group at once.',
+    rows: [
+      ['Excessive permissions', 16, 'tools in the profile with no call in 90 days'],
+      ['No accountable owner', 11, 'nobody answers for the agent'],
+      ['Weak policy path', 8, 'the agent can only take the weakest path'],
+      ['Outside policy', 8, 'reached an app the policy does not list'],
+    ],
+    blind: 'Outside policy findings need the app owner to answer, so they cannot all be closed from this screen.',
+    findings: ['f1', 'f6', 'f4'],
+    blindNote: 'Outside policy findings wait on app owners and are not closed here.',
+  },
+  owners: {
+    title: 'Find an owner for 11 agents',
+    reading: ['11 agents have nobody accountable.', 'For 6 of them the owner left the company, so their manager is the closest human.'],
+    setTitle: '11 agents without an owner',
+    setNote: 'Ownership is the field everything else hangs on. Without it a department cannot be derived and an approval has nobody to go to.',
+    rows: [
+      ['Owner left the company', UNOWNED.left, 'the human record is gone, the manager remains'],
+      ['Owner has no HR record', UNOWNED.noHr, 'the owner exists in the app but not in HR'],
+      ['Never had an owner', UNOWNED.never, 'created without an owner and never claimed'],
+    ],
+    blind: '3 of these 11 are also the agents that could not be placed in any department.',
+    findings: ['o1', 'o2', 'o3'],
+    scope: 'unowned',
+    blindNote: '3 of the 11 are still unplaced in any department until a person answers.',
+  },
+  path: {
+    title: 'Remove the weak path from MKT-01',
+    reading: ['A policy accepts several ways in and any one of them is enough.', 'An agent has no phone and no inbox, so it can only take the weakest one.'],
+    setTitle: '8 policies with a weaker agent path',
+    setNote: 'The policy looks strong because it lists a security key. No agent can present one.',
+    rows: [
+      ['Agents on MKT-01', MARKETING_IN_SCOPE, 'all of them sign in with password and OTP'],
+      ['Policies with the same shape', 7, 'a strong path exists that no agent can use'],
+    ],
+    blind: '2 of the 8 policies are managed outside NewCore, so they can be flagged here but not changed.',
+    findings: ['f3', 'p2'],
+    scope: 'marketing',
+    blindNote: '2 policies are managed outside NewCore and were only flagged.',
+  },
+}
+
+export const WIDGET_TO_SCENARIO = {
+  'Threats detected': 'threats',
+  'Violations by severity': 'severity',
+  'Violations by type': 'type',
+  'No accountable owner': 'owners',
+  'Weak authentication path': 'path',
+}

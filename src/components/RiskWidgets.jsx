@@ -2,23 +2,49 @@ import React from 'react'
 import { Button, Card, Tag } from 'antd'
 import { ArrowUpOutlined } from '@ant-design/icons'
 import { Donut, SeverityBar, Trend } from './Charts.jsx'
-import { BY_SEVERITY, BY_TYPE, THREATS, TREND, UNOWNED, UNOWNED_TOTAL, MARKETING_IN_SCOPE } from '../data.js'
+import { BY_SEVERITY, BY_TYPE, THREATS, TREND, UNOWNED, UNOWNED_TOTAL, MARKETING_IN_SCOPE, WIDGET_TO_SCENARIO } from '../data.js'
 
 const meta = (text) => <span className="widget-meta">{text}</span>
 const sevColor = { Critical: 'red', High: 'orange', Medium: 'gold' }
 
-function Fix({ onClick, children = 'Fix with Access AI' }) {
+// A widget is two things at once: a shortcut that starts the work, and a piece of context
+// you can attach to a question. The button does the first, clicking the card does the second.
+function Widget({ title, extra, selected, onToggle, onFix, children, statiс }) {
+  const scenario = WIDGET_TO_SCENARIO[title]
+  const isStatic = !scenario
   return (
-    <Button type="link" size="small" className="widget-link" style={{ padding: 0 }} onClick={onClick}>
-      {children}
-    </Button>
+    <div
+      className={`widget-wrap${selected ? ' selected' : ''}${isStatic ? ' static' : ''}`}
+      onClick={isStatic ? undefined : () => onToggle(title)}
+    >
+      <Card className="widget" size="small" title={title} extra={extra}>
+        {children}
+        {isStatic ? (
+          <span />
+        ) : (
+          <Button
+            type="link"
+            size="small"
+            className="widget-link"
+            style={{ padding: 0 }}
+            onClick={(e) => {
+              e.stopPropagation()
+              onFix(scenario)
+            }}
+          >
+            Fix with Access AI
+          </Button>
+        )}
+      </Card>
+    </div>
   )
 }
 
-export default function RiskWidgets({ onFix }) {
+export default function RiskWidgets({ onFix, selected, onToggle }) {
+  const is = (t) => selected.includes(t)
   return (
     <div className="widgets">
-      <Card className="widget" size="small" title="Threats detected" extra={meta('8 threats')}>
+      <Widget title="Threats detected" extra={meta('8 threats')} selected={is('Threats detected')} onToggle={onToggle} onFix={onFix}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {THREATS.map((t) => (
             <div key={t.label} className="stat-row">
@@ -32,10 +58,9 @@ export default function RiskWidgets({ onFix }) {
             </div>
           ))}
         </div>
-        <Fix onClick={() => onFix('admin')} />
-      </Card>
+      </Widget>
 
-      <Card className="widget" size="small" title="Violations by severity" extra={meta('43 violations')}>
+      <Widget title="Violations by severity" extra={meta('43 violations')} selected={is('Violations by severity')} onToggle={onToggle} onFix={onFix}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <SeverityBar data={BY_SEVERITY} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px' }}>
@@ -48,10 +73,9 @@ export default function RiskWidgets({ onFix }) {
             ))}
           </div>
         </div>
-        <Fix onClick={() => onFix('harden')} />
-      </Card>
+      </Widget>
 
-      <Card className="widget" size="small" title="Violations by type">
+      <Widget title="Violations by type" selected={is('Violations by type')} onToggle={onToggle} onFix={onFix}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <Donut data={BY_TYPE} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
@@ -64,10 +88,9 @@ export default function RiskWidgets({ onFix }) {
             ))}
           </div>
         </div>
-        <Fix onClick={() => onFix('harden')} />
-      </Card>
+      </Widget>
 
-      <Card className="widget" size="small" title="No accountable owner" extra={meta(`${UNOWNED_TOTAL} agents`)}>
+      <Widget title="No accountable owner" extra={meta(`${UNOWNED_TOTAL} agents`)} selected={is('No accountable owner')} onToggle={onToggle} onFix={onFix}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {[
             ['Owner left the company', UNOWNED.left],
@@ -80,27 +103,26 @@ export default function RiskWidgets({ onFix }) {
             </div>
           ))}
         </div>
-        <Fix onClick={() => onFix('owners')} />
-      </Card>
+      </Widget>
 
-      <Card className="widget" size="small" title="Weak authentication path" extra={meta('8 policies')}>
+      <Widget title="Weak authentication path" extra={meta('8 policies')} selected={is('Weak authentication path')} onToggle={onToggle} onFix={onFix}>
         <div>
           <div style={{ fontWeight: 600 }}>{MARKETING_IN_SCOPE} agents</div>
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>use the weakest path their policy allows</div>
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 8 }}>MKT-01 and 7 more policies</div>
         </div>
-        <Fix onClick={() => onFix('path')} />
-      </Card>
+      </Widget>
 
-      <Card
-        className="widget"
-        size="small"
+      <Widget
         title="Issue trend"
         extra={
           <span style={{ color: '#cf1322', fontSize: 12 }}>
             <ArrowUpOutlined /> {TREND.delta} in 90 days
           </span>
         }
+        selected={false}
+        onToggle={() => {}}
+        onFix={() => {}}
       >
         <Trend open={TREND.open} resolved={TREND.resolved} labels={TREND.labels} />
         <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
@@ -111,7 +133,7 @@ export default function RiskWidgets({ onFix }) {
             <i style={{ width: 14, height: 2, background: '#d9d9d9' }} /> Resolved
           </span>
         </div>
-      </Card>
+      </Widget>
     </div>
   )
 }

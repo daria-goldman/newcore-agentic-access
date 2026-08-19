@@ -8,42 +8,52 @@ import {
   MenuUnfoldOutlined,
   RightOutlined,
 } from '@ant-design/icons'
-import { FINDINGS, MARKETING_IN_SCOPE, OPEN_FINDINGS, SET, SUGGESTIONS, TOTAL_AGENTS, UNOWNED_TOTAL } from '../data.js'
+import { ALL_FINDINGS, MARKETING_IN_SCOPE, OPEN_FINDINGS, SCENARIOS, SUGGESTIONS, UNOWNED_TOTAL, UNOWNED_AGENTS, WIDGET_TO_SCENARIO } from '../data.js'
 
-const READING = [
-  'No agent carries a department, so I follow each agent to its owner.',
-  `${TOTAL_AGENTS} agents checked, 37 belong to someone in Marketing.`,
-  '3 of them have no owner at all, so they cannot be placed.',
-]
+const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path', admin: 'threats' }
+const SCOPE_LABEL = {
+  marketing: `Access AI set · ${MARKETING_IN_SCOPE} marketing agents`,
+  unowned: `Access AI set · ${UNOWNED_AGENTS.length} agents without an owner`,
+}
 
 export default function AccessPanel({
   collapsed,
   onCollapse,
   step,
   setStep,
-  suggestionId,
-  attached,
-  onDetach,
+  scenarioKey,
+  attachedWidgets,
+  attachedAgents,
+  onDetachWidget,
+  onDetachAgents,
   onScope,
   onOpenEmail,
 }) {
   const [visibleLines, setVisibleLines] = useState(0)
-  const [findings, setFindings] = useState(FINDINGS.map((f) => ({ ...f })))
+  const [findings, setFindings] = useState([])
   const [applied, setApplied] = useState([])
+  const [draft, setDraft] = useState('')
+
+  const scenario = SCENARIOS[scenarioKey] || SCENARIOS.harden
+
+  useEffect(() => {
+    setFindings(scenario.findings.map((id) => ({ ...ALL_FINDINGS.find((f) => f.id === id) })))
+  }, [scenarioKey])
 
   useEffect(() => {
     if (step !== 'reading') return
     setVisibleLines(0)
-    const timers = READING.map((_, i) => setTimeout(() => setVisibleLines(i + 1), 500 + i * 650))
+    const lines = scenario.reading
+    const timers = lines.map((_, i) => setTimeout(() => setVisibleLines(i + 1), 500 + i * 650))
     const done = setTimeout(() => {
       setStep('set')
-      onScope({ label: `Marketing agents · ${MARKETING_IN_SCOPE}`, kind: 'marketing' })
-    }, 500 + READING.length * 650 + 350)
+      if (scenario.scope) onScope({ kind: scenario.scope, label: SCOPE_LABEL[scenario.scope] })
+    }, 500 + lines.length * 650 + 350)
     return () => {
       timers.forEach(clearTimeout)
       clearTimeout(done)
     }
-  }, [step])
+  }, [step, scenarioKey])
 
   const chosen = useMemo(() => findings.filter((f) => f.on), [findings])
 
@@ -59,7 +69,7 @@ export default function AccessPanel({
             title: f.title,
             state: f.email ? 'waiting' : f.id === 'f4' ? 'failed' : 'applied',
             note: f.email
-              ? 'sent to the manager of the departed owner'
+              ? 'sent, nothing changes until a person answers'
               : f.id === 'f4'
                 ? 'the app rejected the change, its owner must approve'
                 : null,
@@ -88,6 +98,14 @@ export default function AccessPanel({
 
   const toggle = (id) => setFindings((prev) => prev.map((f) => (f.id === id ? { ...f, on: !f.on } : f)))
 
+  const send = () => {
+    const fromWidget = attachedWidgets.length ? WIDGET_TO_SCENARIO[attachedWidgets[0]] : null
+    setDraft('')
+    setStep('reading', fromWidget || (attachedAgents.length ? 'harden' : scenarioKey || 'harden'))
+  }
+
+  const canSend = attachedWidgets.length > 0 || attachedAgents.length > 0 || draft.trim().length > 0
+
   return (
     <aside className="panel">
       <div className="panel-head">
@@ -101,29 +119,34 @@ export default function AccessPanel({
             <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 12 }}>Where should we start?</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {SUGGESTIONS.map((s, i) => (
-                <div key={s.id} className={`suggestion${i === 0 ? ' primary' : ''}`} onClick={() => setStep('reading', s.id)}>
+                <div
+                  key={s.id}
+                  className={`suggestion${i === 0 ? ' primary' : ''}`}
+                  onClick={() => setStep('reading', SUGGESTION_TO_SCENARIO[s.id])}
+                >
                   <div className="suggestion-title">{s.title}</div>
                   <div className="suggestion-sub">{s.sub}</div>
                 </div>
               ))}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 12 }}>
-              {OPEN_FINDINGS} open findings on this page, {UNOWNED_TOTAL} agents without an owner.
+              {OPEN_FINDINGS} open findings on this page, {UNOWNED_TOTAL} agents without an owner. Click a widget or pick
+              rows to bring them here.
             </div>
           </div>
         )}
 
         {step === 'reading' && (
           <div>
-            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Harden access for marketing agents</div>
+            <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>{scenario.title}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {READING.slice(0, visibleLines).map((line) => (
+              {scenario.reading.slice(0, visibleLines).map((line) => (
                 <div key={line} className="step step-line">
                   <CheckCircleFilled style={{ color: '#52c41a', marginTop: 3 }} />
                   <span>{line}</span>
                 </div>
               ))}
-              {visibleLines < READING.length && (
+              {visibleLines < scenario.reading.length && (
                 <div className="step-line pulsing" style={{ color: 'rgba(0,0,0,0.45)' }}>
                   Reading your estate…
                 </div>
@@ -134,16 +157,10 @@ export default function AccessPanel({
 
         {step === 'set' && (
           <div className="step">
-            <div style={{ fontSize: 16, fontWeight: 600 }}>{MARKETING_IN_SCOPE} agents in scope</div>
-            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 12px' }}>
-              There is no department on an agent. This set is built through the human who owns it.
-            </div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>{scenario.setTitle}</div>
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 12px' }}>{scenario.setNote}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-              {[
-                ['Owner sits in Marketing', SET.confirmed, 'derived from the owner record'],
-                ['Department inferred', SET.inferred, 'owner has no department, taken from their manager'],
-                ['Disputed', SET.disputed, 'owner is a contractor or sits in two departments'],
-              ].map(([label, count, why]) => (
+              {scenario.rows.map(([label, count, why]) => (
                 <div key={label} className="stat-row">
                   <Tooltip title={why}>
                     <span>{label}</span>
@@ -152,16 +169,10 @@ export default function AccessPanel({
                 </div>
               ))}
             </div>
-            <div className="blind">
-              <b>{SET.unresolved} agents could not be placed.</b> Nobody owns them, so their department is a guess from the
-              apps they touch. They stay out of this change and become their own task.
-            </div>
+            <div className="blind">{scenario.blind}</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
               <Button type="primary" onClick={() => setStep('findings')}>
-                Show the 8 findings
-              </Button>
-              <Button onClick={() => onScope({ label: 'Unplaced candidates · 3', kind: 'unresolved' })}>
-                Review the 3
+                Show the {findings.length} findings
               </Button>
             </div>
           </div>
@@ -172,7 +183,9 @@ export default function AccessPanel({
             <Button type="text" size="small" icon={<LeftOutlined />} style={{ paddingLeft: 0 }} onClick={() => setStep('set')}>
               Back to the set
             </Button>
-            <div style={{ fontSize: 16, fontWeight: 600, margin: '6px 0 2px' }}>8 findings across 4 apps and 2 policies</div>
+            <div style={{ fontSize: 16, fontWeight: 600, margin: '6px 0 2px' }}>
+              {findings.length} findings you can act on
+            </div>
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 12 }}>
               Every change carries what it is based on and what it costs. Nothing is applied without you.
             </div>
@@ -214,7 +227,7 @@ export default function AccessPanel({
         {step === 'applying' && (
           <div>
             <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 10 }}>Applying</div>
-            <Progress percent={Math.round((applied.length / chosen.length) * 100)} showInfo={false} />
+            <Progress percent={Math.round((applied.length / Math.max(chosen.length, 1)) * 100)} showInfo={false} />
             <div style={{ marginTop: 10 }}>
               {applied.map((a) => (
                 <div key={a.id} className="step result-line">
@@ -256,8 +269,7 @@ export default function AccessPanel({
               </div>
             ))}
             <div className="blind" style={{ marginTop: 12 }}>
-              <b>3 agents were never checked.</b> Nobody owns them, so they were left out of this change and now sit in
-              their own task. This screen does not call the job done.
+              <b>{scenario.blindNote}</b> This screen does not call the job done.
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
               <Button
@@ -277,16 +289,21 @@ export default function AccessPanel({
       </div>
 
       <div className="panel-foot">
-        <div style={{ border: '1px solid #d9d9d9', borderRadius: 8, padding: 10 }}>
-          {attached.length ? (
-            <div style={{ marginBottom: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-              {attached.length > 3 ? (
-                <Tag color="blue" closable onClose={onDetach}>
-                  {attached.length} agents attached
+        <div className="composer">
+          {attachedWidgets.length || attachedAgents.length ? (
+            <div className="composer-chips">
+              {attachedWidgets.map((w) => (
+                <Tag key={w} color="blue" closable onClose={() => onDetachWidget(w)}>
+                  {w}
+                </Tag>
+              ))}
+              {attachedAgents.length > 3 ? (
+                <Tag color="blue" closable onClose={onDetachAgents}>
+                  {attachedAgents.length} agents attached
                 </Tag>
               ) : (
-                attached.map((a) => (
-                  <Tag key={a} color="blue" closable onClose={onDetach}>
+                attachedAgents.map((a) => (
+                  <Tag key={a} color="blue" closable onClose={onDetachAgents}>
                     {a}
                   </Tag>
                 ))
@@ -298,9 +315,17 @@ export default function AccessPanel({
             autoSize={{ minRows: 1, maxRows: 3 }}
             placeholder="Ask about risks and agents, and apply fixes"
             style={{ padding: 0 }}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onPressEnter={(e) => {
+              if (!e.shiftKey && canSend) {
+                e.preventDefault()
+                send()
+              }
+            }}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <Button type="primary" size="small" onClick={() => setStep('reading')}>
+            <Button type="primary" size="small" disabled={!canSend} onClick={send}>
               Send
             </Button>
           </div>

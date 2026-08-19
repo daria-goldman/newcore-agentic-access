@@ -5,37 +5,38 @@ import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
-import { AGENTS, BULK_ACTIONS, MARKETING_AGENTS, UNRESOLVED_AGENTS } from './data.js'
+import { AGENTS, BULK_ACTIONS, MARKETING_AGENTS, UNOWNED_AGENTS } from './data.js'
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false)
   const [step, setStepRaw] = useState('idle')
-  const [suggestionId, setSuggestionId] = useState(null)
+  const [scenarioKey, setScenarioKey] = useState('harden')
   const [scope, setScope] = useState(null)
   const [selected, setSelected] = useState([])
+  const [widgets, setWidgets] = useState([])
   const [emailOpen, setEmailOpen] = useState(false)
   const [msg, holder] = message.useMessage()
 
-  const setStep = (next, id) => {
-    if (id) setSuggestionId(id)
+  const setStep = (next, key) => {
+    if (key) setScenarioKey(key)
     setStepRaw(next)
     if (next !== 'idle') setCollapsed(false)
   }
 
   const rows = useMemo(() => {
     if (scope?.kind === 'marketing') return MARKETING_AGENTS
-    if (scope?.kind === 'unresolved') return UNRESOLVED_AGENTS
+    if (scope?.kind === 'unowned') return UNOWNED_AGENTS
     return AGENTS
   }, [scope])
 
-  const attached = useMemo(() => {
-    const names = selected.map((k) => AGENTS.find((a) => a.key === k)?.name).filter(Boolean)
-    return names
-  }, [selected])
+  const attachedAgents = useMemo(
+    () => selected.map((k) => AGENTS.find((a) => a.key === k)?.name).filter(Boolean),
+    [selected],
+  )
 
-  const onFix = (id) => {
-    setSuggestionId(id)
-    setStep(id === 'harden' ? 'reading' : 'reading', id)
+  const toggleWidget = (title) => {
+    setCollapsed(false)
+    setWidgets((prev) => (prev.includes(title) ? prev.filter((w) => w !== title) : [...prev, title]))
   }
 
   const onBulk = (key, keys) => {
@@ -67,7 +68,7 @@ export default function App() {
         <div className="page">
           <h1 className="page-title">Risk Manager</h1>
           <div className="section-label">Risks</div>
-          <RiskWidgets onFix={onFix} />
+          <RiskWidgets onFix={(key) => setStep('reading', key)} selected={widgets} onToggle={toggleWidget} />
           <div className="section-gap" />
           <div className="section-label">Agents</div>
           <AgentsTable
@@ -77,8 +78,11 @@ export default function App() {
             scope={scope}
             onClearScope={() => setScope(null)}
             onBulk={onBulk}
-            onManage={() => setStep('reading', 'harden')}
-            onAskAi={() => setStep('idle')}
+            onManage={() => setCollapsed(false)}
+            onAskAi={() => {
+              setCollapsed(false)
+              setStep('idle')
+            }}
           />
         </div>
       </main>
@@ -88,9 +92,11 @@ export default function App() {
         onCollapse={() => setCollapsed((v) => !v)}
         step={step}
         setStep={setStep}
-        suggestionId={suggestionId}
-        attached={attached}
-        onDetach={() => setSelected([])}
+        scenarioKey={scenarioKey}
+        attachedWidgets={widgets}
+        attachedAgents={attachedAgents}
+        onDetachWidget={(w) => setWidgets((prev) => prev.filter((x) => x !== w))}
+        onDetachAgents={() => setSelected([])}
         onScope={setScope}
         onOpenEmail={() => setEmailOpen(true)}
       />
