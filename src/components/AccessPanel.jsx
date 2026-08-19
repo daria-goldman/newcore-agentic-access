@@ -355,8 +355,8 @@ export default function AccessPanel({
           {isLast ? (
             // One action and one link, not three buttons that all read as "show me something".
             <div style={{ display: 'flex', gap: 14, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Button type="primary" onClick={() => ask('What would you change?', 'findings')}>
-                What would you change?
+              <Button type="primary" onClick={() => ask('Suggest fixes', 'findings')}>
+                Suggest fixes
               </Button>
               {scenario.scope ? (
                 <Button type="link" style={{ padding: 0 }} onClick={() => applyFilters(scopeFilters[scenario.scope])}>
