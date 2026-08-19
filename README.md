@@ -39,9 +39,10 @@ npm run dev
 
 ## Access and configuration
 
-The deployment is behind basic auth. `middleware.js` asks for a password taken from the
-`SITE_PASSWORD` environment variable on Vercel. With no variable set the site stays open, so a
-missing setting never breaks a review.
+The deployment is behind basic auth. `middleware.js` asks for a password: any username, and the
+password from the `SITE_PASSWORD` environment variable on Vercel, falling back to the one written
+in that file. Setting the variable turns the password into a real secret, since the fallback is
+readable here.
 
 `api/ask.js` answers typed questions with Claude, constrained to the estate in `src/data.js`:
 it is told to invent nothing, to say when it does not know, and to never promise a change.
@@ -50,7 +51,7 @@ It runs only when `ANTHROPIC_API_KEY` is set. Without a key the panel falls back
 
 | Variable | What it does |
 |---|---|
-| `SITE_PASSWORD` | Password for the whole site, any username works |
+| `SITE_PASSWORD` | Password for the whole site, any username works. Overrides the fallback in `middleware.js` |
 | `ANTHROPIC_API_KEY` | Enables the live answers, optional |
 
 ## Stack
