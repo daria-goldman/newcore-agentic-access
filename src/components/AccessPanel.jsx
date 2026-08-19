@@ -1,9 +1,20 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Progress, Switch, Tag, Tooltip } from 'antd'
-import { CheckCircleFilled, ClockCircleFilled, CloseCircleFilled, MessageOutlined } from '@ant-design/icons'
-import { AccountIcon, BackIcon, HistoryIcon, PanelClose, PanelOpen, PlusIcon, RouteIcon, ShieldCheckIcon, WandIcon } from '../icons.jsx'
+import { CheckCircleFilled, ClockCircleFilled, CloseCircleFilled } from '@ant-design/icons'
+import {
+  AccountIcon,
+  BackIcon,
+  ChatIcon,
+  HistoryIcon,
+  PanelClose,
+  PanelOpen,
+  PlusIcon,
+  RouteIcon,
+  ShieldCheckIcon,
+  WandIcon,
+} from '../icons.jsx'
 import Avatar from './Avatar.jsx'
-import { OPEN_FINDINGS, SCENARIOS, SUGGESTIONS, UNOWNED_TOTAL, WIDGET_TO_SCENARIO } from '../data.js'
+import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO } from '../data.js'
 import { answerFor } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
@@ -445,7 +456,7 @@ export default function AccessPanel({
       </div>
       <div className="panel-inner">
       <div className="panel-head">
-        <Tooltip title="Collapse" placement="bottom">
+        <Tooltip title="Collapse Access AI" placement="bottom">
           <button className="icon-btn" onClick={onCollapse} aria-label="Collapse Access AI">
             <PanelClose />
           </button>
@@ -485,7 +496,7 @@ export default function AccessPanel({
               chats.map((c) => (
                 <div key={c.id} className={`chat-row${chat?.id === c.id ? ' active' : ''}`} onClick={() => openChat(c.id)}>
                   <span className="chat-avatar">
-                    <MessageOutlined />
+                    <ChatIcon />
                   </span>
                   <div style={{ minWidth: 0, flex: '1 1 auto' }}>
                     <div className="chat-title">{c.kind === 'filter' ? c.query : SCENARIOS[c.scenarioKey].title}</div>
@@ -520,9 +531,6 @@ export default function AccessPanel({
                   </div>
                 </div>
               ))}
-            </div>
-            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 12, textAlign: 'center' }}>
-              {OPEN_FINDINGS} open findings on this page, {UNOWNED_TOTAL} agents without an owner.
             </div>
           </div>
         )}

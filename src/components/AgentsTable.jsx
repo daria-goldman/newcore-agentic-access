@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
+import { ChevronDownIcon } from '../icons.jsx'
 import { ACTION_GROUPS } from '../data.js'
 import { FILTER_MATCH } from '../query.js'
 
@@ -12,17 +13,17 @@ const riskColor = { High: 'red', Medium: 'gold', Low: 'default' }
 // a department is derived from and who an approval is sent to. Risk was the runner up and stayed
 // optional, because you can already filter and sort by it.
 const COLUMN_DEFS = {
-  name: { title: 'Agent', width: 190, pinned: 'first' },
-  dept: { title: 'Department', width: 200, filter: 'dept' },
-  owner: { title: 'Owner', width: 190, filter: 'owner', required: true },
-  risk: { title: 'Risk', width: 110, filter: 'risk' },
-  usage: { title: 'Usage', width: 110, filter: 'usage' },
-  status: { title: 'Status', width: 120, filter: 'status' },
+  name: { title: 'Agent', width: 165, pinned: 'first' },
+  dept: { title: 'Department', width: 175, filter: 'dept' },
+  owner: { title: 'Owner', width: 165, filter: 'owner', required: true },
+  risk: { title: 'Risk', width: 90, filter: 'risk' },
+  usage: { title: 'Usage', width: 95, filter: 'usage' },
+  status: { title: 'Status', width: 105, filter: 'status' },
   // Off by default: useful, but not what the admin scans for first.
   sponsor: { title: 'Sponsor', width: 170, filter: 'sponsor', optional: true },
   lastUsed: { title: 'Last used', width: 140, filter: 'lastUsed', optional: true },
   created: { title: 'Date created', width: 140, filter: 'created', optional: true },
-  action: { title: 'Action', width: 110, pinned: 'last' },
+  action: { title: 'Action', width: 70, pinned: 'last' },
 }
 const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'sponsor', 'lastUsed', 'created', 'action']
 const DEFAULT_HIDDEN = ['sponsor', 'lastUsed', 'created']
@@ -234,16 +235,20 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')
       base.render = (_, r) => (
-        <Dropdown menu={{ items: actionItems(1), onClick: ({ key: k }) => onBulk(k, [r.key]) }}>
-          <Button type="link" size="small" style={{ padding: 0 }}>
-            Actions <DownOutlined style={{ fontSize: 10 }} />
-          </Button>
+        // One square control per row instead of the word Actions repeated down the page.
+        <Dropdown menu={{ items: actionItems(1), onClick: ({ key: k }) => onBulk(k, [r.key]) }} trigger={['click']}>
+          <Tooltip title="Actions">
+            <Button icon={<ChevronDownIcon />} />
+          </Tooltip>
         </Dropdown>
       )
     return base
   }
 
   const columns = order.filter((k) => !hidden.includes(k)).map(buildColumn)
+  // The default set fits the width of the page. Turning extra columns on is what makes the
+  // table scroll sideways, rather than squeezing every column into an unreadable width.
+  const totalWidth = columns.reduce((sum, c) => sum + (c.width || 0), 0) + 44
 
   return (
     <div>
@@ -337,7 +342,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
             />
           ),
         }}
-        scroll={{ x: 'max-content' }}
+        scroll={totalWidth > 900 ? { x: totalWidth } : undefined}
         pagination={{ pageSize: 8, showSizeChanger: false, size: 'small' }}
       />
     </div>
