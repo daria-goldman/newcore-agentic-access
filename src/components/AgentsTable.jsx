@@ -328,7 +328,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
           <span className="toolbar-grow" />
           <Dropdown menu={{ items: actionItems(selected.length), onClick: ({ key }) => onBulk(key, selected) }}>
             <Button size="small">
-              Edit in bulk <DownOutlined style={{ fontSize: 10 }} />
+              Manage in bulk <DownOutlined style={{ fontSize: 10 }} />
             </Button>
           </Dropdown>
           <Button size="small" type="text" onClick={() => onSelected([])}>
