@@ -16,6 +16,29 @@ const RU_DEPARTMENTS = [
 
 // A small, honest parser. It turns plain words into the same filters the admin could have set by
 // hand, and says so when it understood nothing. No model behind it, so it never invents a filter.
+// Names of the people and the apps that actually exist in this estate. Built once, so the parser
+// can recognise "agents owned by Noa Katz" without anyone maintaining a list.
+const OWNER_NAMES = [...new Set(AGENTS.map((a) => a.owner).filter(Boolean))]
+const APP_NAMES = [...new Set(AGENTS.map((a) => a.app).filter(Boolean))]
+const LAST_NAMES = (() => {
+  const counts = {}
+  OWNER_NAMES.forEach((n) => {
+    const last = n.split(' ').slice(1).join(' ').toLowerCase()
+    counts[last] = (counts[last] || 0) + 1
+  })
+  return counts
+})()
+
+function matchOwners(t) {
+  const hits = OWNER_NAMES.filter((n) => t.includes(n.toLowerCase()))
+  if (hits.length) return hits
+  // A surname only counts when it points at exactly one person in the estate.
+  return OWNER_NAMES.filter((n) => {
+    const last = n.split(' ').slice(1).join(' ').toLowerCase()
+    return last && LAST_NAMES[last] === 1 && t.includes(` ${last} `)
+  })
+}
+
 export function parseQuery(text) {
   const t = ` ${text.toLowerCase()} `
   const filters = {}
@@ -24,8 +47,13 @@ export function parseQuery(text) {
     if (!filters[key].includes(value)) filters[key].push(value)
   }
 
+  matchOwners(t).forEach((n) => add('ownerName', n))
+  APP_NAMES.forEach((app) => {
+    if (t.includes(app.toLowerCase())) add('app', app)
+  })
   DEPARTMENTS.forEach((d) => {
-    if (t.includes(d.toLowerCase())) add('dept', d)
+    // Whole word only, otherwise "Salesforce" would be read as the Sales department.
+    if (new RegExp(`\\b${d.toLowerCase()}\\b`).test(t)) add('dept', d)
   })
   RU_DEPARTMENTS.forEach(([re, d]) => {
     if (re.test(t)) add('dept', d)
@@ -34,12 +62,13 @@ export function parseQuery(text) {
     add('dept', 'Not derived')
 
   if (
-    /no owner|without an owner|unowned|nobody owns|owner left|no accountable|нет владельц|без владельц|нет ответственн|без ответственн|бесхозн/.test(
+    /no owner|without an owner|unowned|nobody owns|owned by nobody|owned by no one|owner left|no accountable|нет владельц|без владельц|нет ответственн|без ответственн|бесхозн/.test(
       t,
     )
   )
     add('owner', 'No owner')
-  else if (/has an owner|owned by|с владельц|есть владелец/.test(t)) add('owner', 'Has an owner')
+  else if (!filters.ownerName && /has an owner|owned by|с владельц|есть владелец/.test(t))
+    add('owner', 'Has an owner')
 
   if (/high risk|\bhigh\b|высок/.test(t)) add('risk', 'High')
   if (/medium risk|\bmedium\b|средн/.test(t)) add('risk', 'Medium')
@@ -76,6 +105,8 @@ export const FILTER_MATCH = {
   status: (r, v) => r.status === v,
   sponsor: (r, v) => (v === 'No sponsor' ? !r.sponsor : !!r.sponsor),
   guess: (r, v) => r.dept.kind === 'suggested' && r.dept.value === v,
+  ownerName: (r, v) => r.owner === v,
+  app: (r, v) => r.app === v,
   lastUsed: (r, v) =>
     v === 'Today'
       ? r.lastUsedTs >= TODAY_MS - DAY_MS

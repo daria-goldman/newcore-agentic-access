@@ -44,6 +44,9 @@ const FILTER_DEFS = {
   },
   lastUsed: { label: 'Last used', options: ['Today', 'This week', 'This month', 'Older than 3 months'] },
   created: { label: 'Date created', options: ['Last 30 days', 'This year', 'Older than a year'] },
+  // Set by a typed question rather than picked from a list, so it lives as a chip only.
+  ownerName: { label: 'Owner', options: [] },
+  app: { label: 'App', options: ['Salesforce', 'HubSpot', 'Google Drive', 'Slack', 'Notion', 'Jira', 'Zendesk', 'NetSuite'] },
 }
 Object.entries(FILTER_DEFS).forEach(([key, def]) => {
   def.match = FILTER_MATCH[key]
@@ -193,16 +196,18 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
   const filtersMenu = (
     <div className="filter-panel">
       <div className="filter-scroll" ref={measureFilterScroll} onScroll={(e) => measureFilterScroll(e.currentTarget)}>
-        {Object.entries(FILTER_DEFS).map(([key, def]) => (
-          <div key={key} className="filter-group">
-            <div className="filter-group-title">{def.label}</div>
-            <Checkbox.Group
-              value={filters[key] || []}
-              onChange={(values) => setFilterValues(key, values)}
-              options={def.options.map((o) => ({ label: o, value: o }))}
-            />
-          </div>
-        ))}
+        {Object.entries(FILTER_DEFS)
+          .filter(([, def]) => def.options.length)
+          .map(([key, def]) => (
+            <div key={key} className="filter-group">
+              <div className="filter-group-title">{def.label}</div>
+              <Checkbox.Group
+                value={filters[key] || []}
+                onChange={(values) => setFilterValues(key, values)}
+                options={def.options.map((o) => ({ label: o, value: o }))}
+              />
+            </div>
+          ))}
       </div>
       {/* Pinned, so Clear all is never something you have to scroll to the bottom to find. */}
       <div className={`filter-foot${filterShadow ? ' lifted' : ''}`}>
