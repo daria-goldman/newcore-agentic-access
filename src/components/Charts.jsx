@@ -41,11 +41,12 @@ export function SeverityBar({ data }) {
   )
 }
 
+// One palette across the row: the blue family carries volume, the warm family carries severity,
+// and grey stays reserved for the residual slice. Two translucent areas stacked on top of each
+// other mixed into a muddy third colour, so only the Open series is filled, with a gradient.
 export function Trend({ open, resolved, labels }) {
   const w = 250
   const h = 92
-  // Zero stays the baseline, and the space under each line is filled instead of left empty,
-  // so the chart reads as one block with its legend rather than a line floating in a box.
   const max = Math.max(...open, ...resolved) * 1.05
   const x = (i, series) => (i / (series.length - 1)) * w
   const y = (v) => h - (v / max) * h
@@ -54,12 +55,17 @@ export function Trend({ open, resolved, labels }) {
   return (
     <div>
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+        <defs>
+          <linearGradient id="openFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1677ff" stopOpacity="0.16" />
+            <stop offset="100%" stopColor="#1677ff" stopOpacity="0" />
+          </linearGradient>
+        </defs>
         {[0.33, 0.66].map((g) => (
           <line key={g} x1="0" x2={w} y1={h * g} y2={h * g} stroke="#f5f5f5" strokeWidth="1" />
         ))}
-        <path d={area(resolved)} fill="#d9d9d9" opacity="0.35" />
-        <path d={area(open)} fill="#1677ff" opacity="0.10" />
-        <path d={line(resolved)} fill="none" stroke="#d9d9d9" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <path d={area(open)} fill="url(#openFill)" />
+        <path d={line(resolved)} fill="none" stroke="#91caff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
         <path d={line(open)} fill="none" stroke="#1677ff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 4 }}>
@@ -72,7 +78,7 @@ export function Trend({ open, resolved, labels }) {
           <i style={{ width: 14, height: 2, background: '#1677ff' }} /> Open
         </span>
         <span className="legend-row">
-          <i style={{ width: 14, height: 2, background: '#d9d9d9' }} /> Resolved
+          <i style={{ width: 14, height: 2, background: '#91caff' }} /> Resolved
         </span>
       </div>
     </div>
