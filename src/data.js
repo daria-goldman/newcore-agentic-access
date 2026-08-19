@@ -568,8 +568,8 @@ export const SCENARIOS = {
     title: 'Harden access for marketing agents',
     reading: [
       'No agent carries a department, so I follow each agent to its owner.',
-      `${TOTAL_AGENTS} agents checked, 37 belong to someone in Marketing.`,
-      '3 of them have no owner at all, so they cannot be placed.',
+      `${TOTAL_AGENTS} agents checked, ${MARKETING_IN_SCOPE} belong to someone in Marketing.`,
+      '3 more are called mostly by Marketing, but nobody owns them, so they cannot be placed.',
     ],
     setTitle: `${MARKETING_IN_SCOPE} agents in scope`,
     setNote: 'There is no department on an agent. This set is built through the human who owns it.',
@@ -579,6 +579,9 @@ export const SCENARIOS = {
     ],
     blind:
       '3 agents could not be placed. Nobody owns them, so their department is only a guess from the people who call them. They stay out of this change and become their own task.',
+    // The blind spot has to be checkable, not just stated.
+    blindFilter: { owner: ['No owner'], guess: ['Marketing'] },
+    blindFilterLabel: 'Show the 3 in the table',
     findings: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'],
     scope: 'marketing',
     blindNote: '3 agents were never checked. Nobody owns them, so they were left out of this change and now sit in their own task.',
@@ -647,6 +650,8 @@ export const SCENARIOS = {
       ['Never had an owner', UNOWNED.never, 'created without an owner and never claimed'],
     ],
     blind: `3 of these ${UNOWNED_TOTAL} are also the agents that could not be placed in any department.`,
+    blindFilter: { owner: ['No owner'], guess: ['Marketing'] },
+    blindFilterLabel: 'Show those 3 in the table',
     findings: ['o1', 'o2', 'o3'],
     scope: 'unowned',
     blindNote: `3 of the ${UNOWNED_TOTAL} are still unplaced in any department until a person answers.`,

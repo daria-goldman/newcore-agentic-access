@@ -342,7 +342,16 @@ export default function AccessPanel({
               </div>
             ))}
           </div>
-          <div className="blind">{scenario.blind}</div>
+          <div className="blind">
+            {scenario.blind}
+            {isLast && scenario.blindFilter ? (
+              <div style={{ marginTop: 6 }}>
+                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => applyFilters(scenario.blindFilter)}>
+                  {scenario.blindFilterLabel}
+                </Button>
+              </div>
+            ) : null}
+          </div>
           {isLast ? (
             <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
               <Button type="primary" onClick={() => ask(`Show the ${chat.findings.length} findings`, 'findings')}>
