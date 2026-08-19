@@ -14,7 +14,7 @@ import {
   WandIcon,
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
-import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO } from '../data.js'
+import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
 import { answerFor } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
@@ -37,6 +37,28 @@ export function chatSummary(chat) {
   if (chat.step === 'applying') return 'Applying'
   if (chat.step === 'done') return `${chat.applied.filter((a) => a.state === 'applied').length} changes applied`
   return 'Not started'
+}
+
+function Impact({ list }) {
+  const owners = new Set(list.map((a) => a.owner).filter(Boolean))
+  const teams = new Set(list.map((a) => a.dept.value))
+  const shown = list.slice(0, 6)
+  return (
+    <div className="impact step">
+      <div className="impact-head">
+        {list.length} agents · {owners.size} owners · {teams.size} teams
+      </div>
+      {shown.map((a) => (
+        <div key={a.key} className="impact-row">
+          <span className="impact-name">{a.name}</span>
+          <span className="impact-owner">{a.owner || 'N/A'}</span>
+        </div>
+      ))}
+      {list.length > shown.length ? (
+        <div className="impact-more">and {list.length - shown.length} more</div>
+      ) : null}
+    </div>
+  )
 }
 
 function UserMessage({ text, chips }) {
@@ -70,6 +92,7 @@ export default function AccessPanel({
   startFilterChat,
   updateChat,
   openChat,
+  agents,
   applyFilters,
   onApplied,
   scopeFilters,
@@ -83,6 +106,7 @@ export default function AccessPanel({
 }) {
   const [visibleLines, setVisibleLines] = useState(0)
   const [draft, setDraft] = useState('')
+  const [impact, setImpact] = useState(null)
   const bottomRef = useRef(null)
 
   const scenario = chat && chat.scenarioKey ? SCENARIOS[chat.scenarioKey] : null
@@ -359,11 +383,23 @@ export default function AccessPanel({
                   <div className="finding-cost">
                     <b>Costs:</b> {f.cost}
                   </div>
-                  {f.email ? (
-                    <Button type="link" size="small" style={{ padding: 0, marginTop: 4 }} onClick={onOpenEmail}>
-                      See the request
+                  <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                    {/* The cost line names what breaks. This names exactly who it happens to. */}
+                    <Button
+                      type="link"
+                      size="small"
+                      style={{ padding: 0 }}
+                      onClick={() => setImpact(impact === f.id ? null : f.id)}
+                    >
+                      {impact === f.id ? 'Hide who this touches' : 'See who this touches'}
                     </Button>
-                  ) : null}
+                    {f.email ? (
+                      <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
+                        See the request
+                      </Button>
+                    ) : null}
+                  </div>
+                  {impact === f.id ? <Impact list={affectedAgents(agents, f.id)} /> : null}
                 </div>
               </div>
             </div>

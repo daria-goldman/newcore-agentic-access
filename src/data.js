@@ -272,6 +272,27 @@ export const FIX_EFFECTS = {
   p2: { violation: 'path', agents: 33 },
 }
 
+// Some findings are defined by who they touch rather than by a violation type.
+const IMPACT_RULES = {
+  f8: (a) => a.dept.kind === 'suggested' && a.dept.value === 'Marketing',
+  o1: (a) => a.ownerGap === 'left',
+  o3: (a) => a.ownerGap === 'never',
+}
+
+// The list behind the cost line: exactly which agents a change would reach, taken from the
+// same estate the table shows.
+export function affectedAgents(agents, findingId) {
+  const finding = ALL_FINDINGS.find((f) => f.id === findingId)
+  const rule = IMPACT_RULES[findingId]
+  if (rule) return agents.filter(rule).slice(0, finding ? finding.scope : 100)
+  const effect = FIX_EFFECTS[findingId]
+  if (!effect) return []
+  const match = effect.violation
+    ? (a) => a.violations.some((v) => v.type === effect.violation)
+    : (a) => a.threats.includes(effect.threat)
+  return agents.filter(match).slice(0, effect.agents)
+}
+
 // Applying is a real edit of the estate: the violations it names are removed from that many
 // agents, and every widget recounts.
 export function applyFixes(agents, findingIds) {

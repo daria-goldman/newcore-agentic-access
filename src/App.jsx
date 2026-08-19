@@ -174,6 +174,7 @@ export default function App() {
         startFilterChat={startFilterChat}
         updateChat={updateChat}
         openChat={openChat}
+        agents={agents}
         applyFilters={setFilters}
         onApplied={(ids) => setAgents((prev) => applyFixes(prev, ids))}
         scopeFilters={SCOPE_FILTERS}

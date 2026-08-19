@@ -262,3 +262,13 @@ body {
 .ant-table-wrapper .ant-table-filter-trigger:hover,
 .ant-table-wrapper .ant-table-filter-trigger:hover .anticon { color: #1677ff; }
 .thinking svg { color: #6b7c8c; }
+
+.impact {
+  margin-top: 8px; border: 1px solid #f0f0f0; border-radius: 8px;
+  background: #fafafa; padding: 8px 10px;
+}
+.impact-head { font-size: 12px; color: rgba(0, 0, 0, 0.45); margin-bottom: 6px; }
+.impact-row { display: flex; gap: 8px; align-items: baseline; font-size: 12px; padding: 2px 0; }
+.impact-name { color: rgba(0, 0, 0, 0.88); }
+.impact-owner { margin-left: auto; color: rgba(0, 0, 0, 0.45); white-space: nowrap; }
+.impact-more { font-size: 12px; color: rgba(0, 0, 0, 0.45); margin-top: 4px; }
