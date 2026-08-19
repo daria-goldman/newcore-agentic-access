@@ -179,16 +179,19 @@ export function Trend({ points, tickIndexes }) {
       ) : null}
 
       {/* Ticks under the axis, and each date centred on its own tick instead of spread evenly. */}
-      <div style={{ position: 'relative', height: 6 }}>
-        {tickIndexes.map((i) => (
+      <div style={{ position: 'relative', height: 5 }}>
+        {tickIndexes.map((i, k) => (
           <span
             key={i}
             style={{
               position: 'absolute',
               left: `${(i / (points.length - 1)) * 100}%`,
-              width: 1,
-              height: 6,
-              background: '#bfbfbf',
+              transform:
+                k === 0 ? 'translateX(0)' : k === tickIndexes.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
+              width: 2,
+              height: 5,
+              // Same weight and same grey as the axis, so a tick reads as part of the line.
+              background: '#d9d9d9',
             }}
           />
         ))}

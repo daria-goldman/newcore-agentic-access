@@ -185,17 +185,20 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
 
   const filtersMenu = (
     <div className="filter-panel">
-      {Object.entries(FILTER_DEFS).map(([key, def]) => (
-        <div key={key} className="filter-group">
-          <div className="filter-group-title">{def.label}</div>
-          <Checkbox.Group
-            value={filters[key] || []}
-            onChange={(values) => setFilterValues(key, values)}
-            options={def.options.map((o) => ({ label: o, value: o }))}
-          />
-        </div>
-      ))}
-      <div className="col-manager-foot">
+      <div className="filter-scroll">
+        {Object.entries(FILTER_DEFS).map(([key, def]) => (
+          <div key={key} className="filter-group">
+            <div className="filter-group-title">{def.label}</div>
+            <Checkbox.Group
+              value={filters[key] || []}
+              onChange={(values) => setFilterValues(key, values)}
+              options={def.options.map((o) => ({ label: o, value: o }))}
+            />
+          </div>
+        ))}
+      </div>
+      {/* Pinned, so Clear all is never something you have to scroll to the bottom to find. */}
+      <div className="filter-foot">
         <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setFilters({})}>
           Clear all
         </Button>
@@ -343,6 +346,16 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
           ),
         }}
         scroll={totalWidth > 900 ? { x: totalWidth } : undefined}
+        // Clicking anywhere in a row picks it, the way a list of things you act on should behave.
+        // Controls inside the row keep their own job.
+        onRow={(record) => ({
+          onClick: (e) => {
+            if (e.target.closest('button, a, input, .ant-dropdown, .ant-table-selection-column')) return
+            onSelected(
+              selectedSet.has(record.key) ? selected.filter((k) => k !== record.key) : [...selected, record.key],
+            )
+          },
+        })}
         pagination={{ pageSize: 8, showSizeChanger: false, size: 'small' }}
       />
     </div>
