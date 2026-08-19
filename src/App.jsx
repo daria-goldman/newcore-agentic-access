@@ -192,7 +192,21 @@ export default function App() {
         }}
       />
 
-      <OwnerRequestModal open={emailOpen} onClose={() => setEmailOpen(false)} agents={emailAgents} />
+      <OwnerRequestModal
+        open={emailOpen}
+        onClose={() => setEmailOpen(false)}
+        agents={emailAgents}
+        // Sending is an outward facing act. It has to leave a trace on the screen.
+        onSend={(count, managers) => {
+          setEmailOpen(false)
+          const people = managers.length || 1
+          msg.success(
+            count === 1
+              ? `Request sent to ${managers[0] || 'the manager'}. Nothing changes for this agent until they answer.`
+              : `${count} requests sent to ${people} ${people === 1 ? 'person' : 'people'}. Nothing changes for these agents until someone answers.`,
+          )
+        }}
+      />
     </div>
   )
 }

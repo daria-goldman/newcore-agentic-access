@@ -10,7 +10,7 @@ const usageLine = (usage) => {
 
 // One request or forty eight. The difference is not cosmetic: in bulk there is no single
 // recipient to choose, because every agent points at a different manager.
-export default function OwnerRequestModal({ open, onClose, agents = [] }) {
+export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }) {
   const [showAll, setShowAll] = useState(false)
   const bulk = agents.length > 1
   const managers = [...new Set(agents.map((a) => a.manager).filter(Boolean))]
@@ -23,7 +23,7 @@ export default function OwnerRequestModal({ open, onClose, agents = [] }) {
     <Modal
       open={open}
       onCancel={onClose}
-      onOk={onClose}
+      onOk={() => onSend(Math.max(agents.length, 1), managers)}
       okText={bulk ? `Send ${agents.length} requests` : 'Send request'}
       cancelText="Cancel"
       title="Owner request"
