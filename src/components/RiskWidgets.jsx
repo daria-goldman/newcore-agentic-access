@@ -65,7 +65,7 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
       <Widget title="Violations by severity" extra={meta('43 violations')} selected={is('Violations by severity')} onToggle={onToggle} onFix={onFix}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <SeverityBar data={BY_SEVERITY} />
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 20px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 20px' }}>
             {BY_SEVERITY.map((d) => (
               <span key={d.label} className="legend-row">
                 <i className="legend-dot" style={{ background: d.color }} />

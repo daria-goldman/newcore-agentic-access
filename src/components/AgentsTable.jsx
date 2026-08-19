@@ -74,21 +74,9 @@ function actionItems(count) {
   return out
 }
 
-// Four states, and the difference between them is where the value came from:
-// the owner's own record, their manager, an unsettled owner, or nobody at all.
+// Three states, and the difference between them is where the value came from: the owner's own
+// record, their manager, or the people who invoke the agent when nobody owns it.
 function Department({ dept }) {
-  if (dept.kind === 'suggested') {
-    return (
-      <Tooltip
-        title={`This agent has no owner, so its department cannot be derived from a human record. The value is inferred from the people who invoked the agent in the last 90 days: ${dept.confidence}% of them sit in ${dept.value}.`}
-      >
-        <span className="dept-guess">
-          {dept.value}
-          <Tag style={{ marginInlineEnd: 0 }}>{dept.confidence}% users</Tag>
-        </span>
-      </Tooltip>
-    )
-  }
   if (dept.kind === 'confirmed') {
     return (
       <Tooltip title="Read from the department on the record of the human who owns this agent.">
@@ -96,16 +84,15 @@ function Department({ dept }) {
       </Tooltip>
     )
   }
+  const title =
+    dept.kind === 'inferred'
+      ? "The owner carries no department of their own, so the value is taken from their manager's record."
+      : `This agent has no owner, so its department cannot be derived from a human record. The value is inferred from the people who invoked the agent in the last 90 days: ${dept.confidence}% of them sit in ${dept.value}.`
   return (
-    <Tooltip
-      title={
-        dept.kind === 'inferred'
-          ? "The owner carries no department of their own, so the value is taken from their manager's record."
-          : 'The owner belongs to two departments, so the value is not settled until a person confirms it.'
-      }
-    >
-      <span>
-        {dept.value} <span className="dept-soft">· {dept.kind}</span>
+    <Tooltip title={title}>
+      <span className="dept-guess">
+        {dept.value}
+        <Tag style={{ marginInlineEnd: 0 }}>{dept.kind === 'inferred' ? 'Manager' : `${dept.confidence}% users`}</Tag>
       </span>
     </Tooltip>
   )
@@ -242,15 +229,28 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     }
     if (key === 'dept') base.render = (dept) => <Department dept={dept} />
     if (key === 'owner')
-      base.render = (owner, r) =>
-        owner ? (
-          <span>
-            {owner}
-            {r.ownerNote ? <span className="dept-soft"> · {r.ownerNote}</span> : null}
-          </span>
-        ) : (
-          <span className="dept-soft">{r.ownerNote}</span>
+      base.render = (owner, r) => {
+        if (owner)
+          return (
+            <span>
+              {owner}
+              {r.ownerNote ? <span className="dept-soft"> · {r.ownerNote}</span> : null}
+            </span>
+          )
+        // Nobody is accountable. The cell says so plainly, and the reason lives in the tooltip.
+        const label = r.ownerGap === 'left' ? 'Left 12 Apr' : 'N/A'
+        const why =
+          r.ownerGap === 'left'
+            ? 'The owner left the company on 12 April and no replacement was named.'
+            : r.ownerGap === 'noHr'
+              ? 'The owner exists in the application but has no record in HR, so there is nobody to hold accountable.'
+              : 'This agent was created without an owner and has never been claimed.'
+        return (
+          <Tooltip title={why}>
+            <span className="dept-soft">{label}</span>
+          </Tooltip>
         )
+      }
     if (key === 'lastUsed' || key === 'created') base.render = (v) => <span style={{ whiteSpace: 'nowrap' }}>{v}</span>
     if (key === 'sponsor')
       base.render = (v) => (v ? <span>{v}</span> : <span className="dept-soft">no sponsor</span>)

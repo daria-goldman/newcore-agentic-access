@@ -27,7 +27,7 @@ const RISK = ['High', 'Medium', 'Low']
 const DESIGNED = [
   { name: 'meeting-prep-agent', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Maya Ben-David' }, risk: 'High', usage: 'daily', status: 'Active', app: 'Salesforce' },
   { name: 'campaign-writer', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Noa Katz' }, risk: 'Medium', usage: 'weekly', status: 'Active', app: 'HubSpot' },
-  { name: 'promo-sync', dept: { kind: 'disputed', value: 'Marketing' }, owner: { name: 'Ronen Levy', note: 'contractor' }, risk: 'High', usage: 'daily', status: 'On review', app: 'Salesforce' },
+  { name: 'promo-sync', dept: { kind: 'confirmed', value: 'Marketing' }, owner: { name: 'Ronen Levy', note: 'contractor' }, risk: 'High', usage: 'daily', status: 'On review', app: 'Salesforce' },
   { name: 'content-bot', dept: { kind: 'suggested', value: 'Marketing', confidence: 90 }, owner: null, ownerNote: 'no owner', risk: 'High', usage: 'idle 4 mo', status: 'Active', app: 'Google Drive' },
   { name: 'data-sync', dept: { kind: 'suggested', value: 'Sales', confidence: 100 }, owner: null, ownerNote: 'owner left 12 Apr', risk: 'High', usage: 'weekly', status: 'Active', app: 'NetSuite' },
 ]
@@ -35,10 +35,10 @@ const DESIGNED = [
 export const TOTAL_AGENTS = 612
 
 // Composition of the derived marketing set, fixed on purpose:
-// 27 confirmed through the owner's department, 4 inferred, 3 disputed = 34 in scope,
+// 30 read straight from the owner's record, 4 taken from the owner's manager = 34 in scope,
 // plus 3 candidates that could not be resolved at all because nobody owns them.
-export const SET = { confirmed: 27, inferred: 4, disputed: 3, unresolved: 3 }
-export const MARKETING_IN_SCOPE = SET.confirmed + SET.inferred + SET.disputed // 34
+export const SET = { confirmed: 30, inferred: 4, unresolved: 3 }
+export const MARKETING_IN_SCOPE = SET.confirmed + SET.inferred // 34
 
 // Agents with nobody accountable, split by why.
 export const UNOWNED = { left: 6, noHr: 3, never: 2 }
@@ -94,9 +94,8 @@ function buildAgents() {
   })
 
   // Still to generate after the five designed rows.
-  let confirmed = SET.confirmed
+  let confirmed = SET.confirmed - 1
   let inferred = SET.inferred - 2
-  let disputed = SET.disputed - 1
   // Nobody accountable: 11 in total, and three of them are marketing candidates.
   const gaps = [
     ...Array(UNOWNED.left - 1).fill('left'),
@@ -126,10 +125,6 @@ function buildAgents() {
     } else if (inferred > 0) {
       dept = { kind: 'inferred', value: 'Marketing' }
       inferred--
-    } else if (disputed > 0) {
-      dept = { kind: 'disputed', value: 'Marketing' }
-      ownerNote = 'contractor'
-      disputed--
     } else if (gapIndex < gaps.length) {
       const marketing = gapIsMarketing.has(gapIndex)
       ownerGap = gaps[gapIndex]
@@ -420,9 +415,8 @@ export const SCENARIOS = {
     setTitle: `${MARKETING_IN_SCOPE} agents in scope`,
     setNote: 'There is no department on an agent. This set is built through the human who owns it.',
     rows: [
-      ['Owner sits in Marketing', SET.confirmed, 'derived from the owner record'],
-      ['Department inferred', SET.inferred, 'owner has no department, taken from their manager'],
-      ['Disputed', SET.disputed, 'owner is a contractor or sits in two departments'],
+      ['Read from the owner record', SET.confirmed, 'the owner carries Marketing on their own record'],
+      ['Taken from the manager', SET.inferred, 'the owner has no department, so the value comes from their manager'],
     ],
     blind:
       '3 agents could not be placed. Nobody owns them, so their department is only a guess from the people who call them. They stay out of this change and become their own task.',
