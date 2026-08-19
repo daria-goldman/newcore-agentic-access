@@ -277,7 +277,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
       <div className="toolbar">
         <Input
           allowClear
-          prefix={<SearchOutlined style={{ color: 'rgba(0,0,0,0.25)' }} />}
+          prefix={<SearchOutlined style={{ color: '#6b7c8c' }} />}
           placeholder="Search agents"
           style={{ width: 220 }}
           value={query}

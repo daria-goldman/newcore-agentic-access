@@ -154,7 +154,7 @@ body {
 .col-row.draggable { cursor: grab; }
 .col-row.draggable:hover { background: #fafafa; }
 .col-row.dragging { opacity: 0.4; }
-.col-handle { color: rgba(0, 0, 0, 0.25); display: flex; }
+.col-handle { color: #6b7c8c; display: flex; }
 .col-note { margin-left: auto; font-size: 11px; color: rgba(0, 0, 0, 0.35); }
 
 .composer { border: 1px solid #d9d9d9; border-radius: 8px; padding: 10px; transition: border-color 140ms ease; }
@@ -209,7 +209,7 @@ body {
 }
 .start-title { text-align: center; font-size: 16px; font-weight: 600; margin-bottom: 14px; }
 .suggestion-row { display: flex; gap: 10px; align-items: flex-start; }
-.suggestion-icon { color: rgba(0, 0, 0, 0.45); margin-top: 2px; display: flex; }
+.suggestion-icon { color: #6b7c8c; margin-top: 2px; display: flex; }
 
 .msg { margin-bottom: 16px; }
 .msg-chips { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
@@ -246,3 +246,19 @@ body {
 .btn-muted:hover { color: #1677ff; }
 
 .dept-guess { display: inline-flex; align-items: center; gap: 8px; }
+
+/* One grey for every icon on the screen. The only exceptions are the assistant's own mark,
+   which stays blue, and the sidebar, which belongs to the product chrome. */
+.toolbar .anticon,
+.bulkbar .anticon,
+.ant-table-filter-trigger,
+.ant-pagination .anticon,
+.col-manager .anticon,
+.filter-panel .anticon { color: #6b7c8c; }
+.ant-table-wrapper .ant-table-filter-trigger,
+.ant-table-wrapper .ant-table-filter-trigger .anticon { color: #6b7c8c; }
+.ant-table-wrapper .ant-table-filter-trigger.active,
+.ant-table-wrapper .ant-table-filter-trigger.active .anticon,
+.ant-table-wrapper .ant-table-filter-trigger:hover,
+.ant-table-wrapper .ant-table-filter-trigger:hover .anticon { color: #1677ff; }
+.thinking svg { color: #6b7c8c; }
