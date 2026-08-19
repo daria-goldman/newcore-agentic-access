@@ -395,6 +395,8 @@ export default function AccessPanel({
                   <div className="finding-cost">
                     <b>Costs:</b> {f.cost}
                   </div>
+                  {/* A switch that starts off has to say why, otherwise grey reads as forbidden. */}
+                  {!f.on && f.offReason ? <div className="finding-off">{f.offReason}</div> : null}
                   <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
                     {/* The cost line names what breaks. This names exactly who it happens to. */}
                     <Button

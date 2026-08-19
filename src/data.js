@@ -547,6 +547,7 @@ export const EXTRA_FINDINGS = [
     scope: 5,
     approval: true,
     on: false,
+    offReason: 'Off by default, because it is the only change here that cannot be rolled back.',
   },
   {
     id: 'p2',
@@ -557,6 +558,7 @@ export const EXTRA_FINDINGS = [
     scope: 7,
     approval: true,
     on: false,
+    offReason: 'Off by default, because seven app owners have to confirm, which makes it its own campaign.',
   },
 ]
 
