@@ -126,7 +126,7 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
         onToggle={() => {}}
         onFix={() => {}}
       >
-        <Trend open={TREND.open} resolved={TREND.resolved} labels={TREND.labels} />
+        <Trend points={TREND.points} tickIndexes={TREND.tickIndexes} />
       </Widget>
     </div>
   )

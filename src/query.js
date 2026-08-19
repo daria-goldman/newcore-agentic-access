@@ -2,6 +2,18 @@ import { AGENTS, DAY_MS, TODAY_MS } from './data.js'
 
 const DEPARTMENTS = ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People']
 
+// The interface is in English, the person in front of it may not be. Same rules, two vocabularies.
+const RU_DEPARTMENTS = [
+  [/маркетинг/, 'Marketing'],
+  [/продаж|сейлз/, 'Sales'],
+  [/финанс/, 'Finance'],
+  [/инженер|разработ/, 'Engineering'],
+  [/поддержк/, 'Support'],
+  [/операц/, 'Operations'],
+  [/юрид|легал/, 'Legal'],
+  [/персонал|кадр/, 'People'],
+]
+
 // A small, honest parser. It turns plain words into the same filters the admin could have set by
 // hand, and says so when it understood nothing. No model behind it, so it never invents a filter.
 export function parseQuery(text) {
@@ -15,28 +27,37 @@ export function parseQuery(text) {
   DEPARTMENTS.forEach((d) => {
     if (t.includes(d.toLowerCase())) add('dept', d)
   })
-  if (/not derived|unplaced|no department|unknown department/.test(t)) add('dept', 'Not derived')
+  RU_DEPARTMENTS.forEach(([re, d]) => {
+    if (re.test(t)) add('dept', d)
+  })
+  if (/not derived|unplaced|no department|unknown department|не определ|неопознан|без департамент/.test(t))
+    add('dept', 'Not derived')
 
-  if (/no owner|without an owner|unowned|nobody owns|owner left|no accountable/.test(t)) add('owner', 'No owner')
-  else if (/has an owner|owned by/.test(t)) add('owner', 'Has an owner')
+  if (
+    /no owner|without an owner|unowned|nobody owns|owner left|no accountable|нет владельц|без владельц|нет ответственн|без ответственн|бесхозн/.test(
+      t,
+    )
+  )
+    add('owner', 'No owner')
+  else if (/has an owner|owned by|с владельц|есть владелец/.test(t)) add('owner', 'Has an owner')
 
-  if (/high risk|\bhigh\b/.test(t)) add('risk', 'High')
-  if (/medium risk|\bmedium\b/.test(t)) add('risk', 'Medium')
-  if (/low risk|\blow\b/.test(t)) add('risk', 'Low')
+  if (/high risk|\bhigh\b|высок/.test(t)) add('risk', 'High')
+  if (/medium risk|\bmedium\b|средн/.test(t)) add('risk', 'Medium')
+  if (/low risk|\blow\b|низк/.test(t)) add('risk', 'Low')
 
-  if (/on review|in review|under review/.test(t)) add('status', 'On review')
-  else if (/\bactive\b/.test(t)) add('status', 'Active')
+  if (/on review|in review|under review|на проверк/.test(t)) add('status', 'On review')
+  else if (/\bactive\b|активн/.test(t)) add('status', 'Active')
 
-  if (/idle|unused|not used|dormant|never used/.test(t)) {
+  if (/idle|unused|not used|dormant|never used|простаива|не использ|неактивн|спящ/.test(t)) {
     add('usage', 'idle 2 mo')
     add('usage', 'idle 4 mo')
   }
-  if (/\bdaily\b|every day/.test(t)) add('usage', 'daily')
-  if (/\bweekly\b/.test(t)) add('usage', 'weekly')
-  if (/\bmonthly\b/.test(t)) add('usage', 'monthly')
+  if (/\bdaily\b|every day|ежеднев|каждый день/.test(t)) add('usage', 'daily')
+  if (/\bweekly\b|еженедель/.test(t)) add('usage', 'weekly')
+  if (/\bmonthly\b|ежемесяч/.test(t)) add('usage', 'monthly')
 
-  if (/no sponsor|without a sponsor/.test(t)) add('sponsor', 'No sponsor')
-  else if (/sponsor/.test(t)) add('sponsor', 'Has a sponsor')
+  if (/no sponsor|without a sponsor|без спонсор|нет спонсор/.test(t)) add('sponsor', 'No sponsor')
+  else if (/sponsor|спонсор/.test(t)) add('sponsor', 'Has a sponsor')
 
   if (/last used today|used today/.test(t)) add('lastUsed', 'Today')
   if (/this week/.test(t)) add('lastUsed', 'This week')

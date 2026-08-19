@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 // Drawn as real arcs instead of a dashed stroke: a dashed circle leaves a seam where the
 // last segment meets the first one, which reads as a rendering bug.
@@ -32,8 +32,9 @@ export function Donut({ data, size = 96, thickness = 14, gap = 0.03 }) {
 
 export function SeverityBar({ data }) {
   const total = data.reduce((s, d) => s + d.count, 0)
+  // Same weight as the donut ring, so the two cards read as one system.
   return (
-    <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', width: '100%' }}>
+    <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', width: '100%' }}>
       {data.map((d) => (
         <div key={d.label} style={{ width: `${(d.count / total) * 100}%`, background: d.color }} />
       ))}
@@ -44,16 +45,28 @@ export function SeverityBar({ data }) {
 // One palette across the row: the blue family carries volume, the warm family carries severity,
 // and grey stays reserved for the residual slice. Two translucent areas stacked on top of each
 // other mixed into a muddy third colour, so only the Open series is filled, with a gradient.
-export function Trend({ open, resolved, labels }) {
+export function Trend({ points, tickIndexes }) {
+  const [hover, setHover] = useState(null)
   const w = 250
   const h = 92
+  const open = points.map((p) => p.open)
+  const resolved = points.map((p) => p.resolved)
   const max = Math.max(...open, ...resolved) * 1.05
-  const x = (i, series) => (i / (series.length - 1)) * w
+  const x = (i) => (i / (points.length - 1)) * w
   const y = (v) => h - (v / max) * h
-  const line = (series) => series.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i, series)} ${y(v)}`).join(' ')
+  const line = (series) => series.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ')
   const area = (series) => `${line(series)} L ${w} ${h} L 0 ${h} Z`
+
+  const track = (e) => {
+    const box = e.currentTarget.getBoundingClientRect()
+    const ratio = (e.clientX - box.left) / box.width
+    setHover(Math.max(0, Math.min(points.length - 1, Math.round(ratio * (points.length - 1)))))
+  }
+  const point = hover === null ? null : points[hover]
+  const leftPct = hover === null ? 0 : (hover / (points.length - 1)) * 100
+
   return (
-    <div>
+    <div style={{ position: 'relative' }} onMouseMove={track} onMouseLeave={() => setHover(null)}>
       <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
         <defs>
           <linearGradient id="openFill" x1="0" y1="0" x2="0" y2="1">
@@ -67,10 +80,43 @@ export function Trend({ open, resolved, labels }) {
         <path d={area(open)} fill="url(#openFill)" />
         <path d={line(resolved)} fill="none" stroke="#91caff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
         <path d={line(open)} fill="none" stroke="#1677ff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        {hover !== null ? (
+          <line x1={x(hover)} x2={x(hover)} y1="0" y2={h} stroke="#d9d9d9" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        ) : null}
+        {/* The axis the dates sit on, so the labels are not floating in the air. */}
+        <line x1="0" x2={w} y1={h} y2={h} stroke="#f0f0f0" strokeWidth="2" vectorEffect="non-scaling-stroke" />
       </svg>
+
+      {hover !== null ? (
+        <>
+          <span className="trend-dot" style={{ left: `${leftPct}%`, top: `${y(point.open)}px`, background: '#1677ff' }} />
+          <span className="trend-dot" style={{ left: `${leftPct}%`, top: `${y(point.resolved)}px`, background: '#91caff' }} />
+          <div
+            className="trend-tip"
+            style={{
+              left: `${leftPct}%`,
+              // Flip under the point when there is no room above it, so the tooltip never
+              // climbs into the card title.
+              top: `${y(point.open) > 58 ? y(point.open) - 10 : y(point.open) + 14}px`,
+              transform: `translate(${leftPct > 70 ? '-100%' : leftPct < 30 ? '0' : '-50%'}, ${
+                y(point.open) > 58 ? '-100%' : '0'
+              })`,
+            }}
+          >
+            <div className="trend-tip-date">{point.date}</div>
+            <div>
+              <i style={{ background: '#1677ff' }} /> Open <b>{point.open}</b>
+            </div>
+            <div>
+              <i style={{ background: '#91caff' }} /> Resolved <b>{point.resolved}</b>
+            </div>
+          </div>
+        </>
+      ) : null}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 4 }}>
-        {labels.map((l) => (
-          <span key={l}>{l}</span>
+        {tickIndexes.map((i) => (
+          <span key={i}>{points[i].date}</span>
         ))}
       </div>
       <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 2 }}>

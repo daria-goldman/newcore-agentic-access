@@ -201,11 +201,23 @@ export const BY_TYPE = [
   { label: 'Outside policy', share: 17, color: '#d9d9d9' },
 ]
 
+// Ten readings between 19 May and 11 Aug 2026, so every point on the chart has a real date.
+const TREND_OPEN = [21, 23, 24, 27, 29, 33, 36, 39, 41, 43]
+const TREND_RESOLVED = [12, 13, 13, 15, 16, 18, 21, 25, 29, 32]
+const TREND_START = Date.UTC(2026, 4, 19)
+const TREND_END = Date.UTC(2026, 7, 11)
+const shortDate = (ts) => {
+  const d = new Date(ts)
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`
+}
 export const TREND = {
-  open: [21, 23, 24, 27, 29, 33, 36, 39, 41, 43],
-  resolved: [12, 13, 13, 15, 16, 18, 21, 25, 29, 32],
-  labels: ['19 May', '16 Jun', '14 Jul', '11 Aug'],
-  delta: 22,
+  points: TREND_OPEN.map((open, i) => ({
+    date: shortDate(TREND_START + ((TREND_END - TREND_START) * i) / (TREND_OPEN.length - 1)),
+    open,
+    resolved: TREND_RESOLVED[i],
+  })),
+  tickIndexes: [0, 3, 6, 9],
+  delta: TREND_OPEN[TREND_OPEN.length - 1] - TREND_OPEN[0],
 }
 
 export const OPEN_FINDINGS = BY_SEVERITY.reduce((s, x) => s + x.count, 0) // 43
