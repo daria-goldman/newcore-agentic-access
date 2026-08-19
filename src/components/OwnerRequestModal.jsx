@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Checkbox, Modal, Segmented, Select, Tag } from 'antd'
+import { Modal, Segmented, Select, Tag } from 'antd'
 
 const usageLine = (usage) => {
   if (!usage) return 'has not been used in months'
@@ -16,8 +16,6 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }
   const managers = [...new Set(agents.map((a) => a.manager).filter(Boolean))]
   const shown = showAll ? managers : managers.slice(0, 5)
   const sample = agents[0]
-  const idle = agents.filter((a) => /idle/.test(a.usage || '')).length
-  const active = agents.length - idle
 
   return (
     <Modal
@@ -103,35 +101,6 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }
           </div>
         </div>
 
-        {/* A request with no consequence gets ignored. A consequence that slows down live work is
-            worse than the problem, so the deadline only touches agents that are not working. */}
-        <Checkbox defaultChecked>
-          <div>
-            If nobody replies in 5 days
-            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
-              {bulk ? (
-                <>
-                  {idle} of these agents have not run in months, so they switch to approval only: they
-                  keep reading, and anything they try to write waits for a person.
-                  {active
-                    ? ` The ${active} still in daily use are escalated one level up instead, so nothing running is slowed down.`
-                    : ''}{' '}
-                  Both are reversible.
-                </>
-              ) : active ? (
-                <>
-                  this agent is still in daily use, so nothing about it is restricted. The request is
-                  escalated one level up instead. Reversible.
-                </>
-              ) : (
-                <>
-                  this agent has not run in months, so it switches to approval only: it keeps reading,
-                  and anything it tries to write waits for a person. Reversible.
-                </>
-              )}
-            </div>
-          </div>
-        </Checkbox>
       </div>
     </Modal>
   )
