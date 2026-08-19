@@ -40,9 +40,10 @@ body {
 
 /* Inside a legend item the parts sit close, between items the gap is wide, so the eye groups
    the dot, the number and the label before it groups anything else. */
-.legend-row { display: flex; align-items: center; gap: 5px; font-size: 12px; }
+.legend-row { display: flex; align-items: center; gap: 5px; font-size: 13px; }
 .legend-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 8px; }
-.stat-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: rgba(0, 0, 0, 0.65); }
+/* One grey and one size for every label inside a widget. Only the numbers step up. */
+.stat-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(0, 0, 0, 0.65); }
 .stat-row b { margin-left: auto; font-size: 14px; color: rgba(0, 0, 0, 0.88); }
 
 .toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }

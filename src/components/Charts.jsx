@@ -214,7 +214,7 @@ export function Trend({ points, tickIndexes }) {
           </span>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 18, fontSize: 12, color: 'rgba(0,0,0,0.88)', marginTop: 8 }}>
+      <div style={{ display: 'flex', gap: 18, fontSize: 13, color: 'rgba(0,0,0,0.65)', marginTop: 8 }}>
         <span className="legend-row">
           <i style={{ width: 16, height: 3, borderRadius: 2, background: '#1677ff' }} /> Open
         </span>

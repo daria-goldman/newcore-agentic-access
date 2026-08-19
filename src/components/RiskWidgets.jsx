@@ -55,7 +55,7 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
                   {t.severity}
                 </Tag>
               </span>
-              <span style={{ color: 'rgba(0,0,0,0.88)' }}>{t.label}</span>
+              <span>{t.label}</span>
               <b>{t.count}</b>
             </div>
           ))}
@@ -69,7 +69,7 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
             {BY_SEVERITY.map((d) => (
               <span key={d.label} className="legend-row">
                 <i className="legend-dot" style={{ background: d.color }} />
-                <b style={{ fontSize: 12 }}>{d.count}</b>
+                <b style={{ fontSize: 13 }}>{d.count}</b>
                 <span style={{ color: 'rgba(0,0,0,0.65)' }}>{d.label}</span>
               </span>
             ))}
@@ -84,7 +84,7 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
             {BY_TYPE.map((d) => (
               <span key={d.label} className="legend-row">
                 <i className="legend-dot" style={{ background: d.color }} />
-                <b style={{ fontSize: 12 }}>{d.share}%</b>
+                <b style={{ fontSize: 13 }}>{d.share}%</b>
                 <span style={{ color: 'rgba(0,0,0,0.65)' }}>{d.label}</span>
               </span>
             ))}
@@ -110,8 +110,8 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
       <Widget title="Weak authentication path" extra={meta('8 policies')} selected={is('Weak authentication path')} onToggle={onToggle} onFix={onFix}>
         <div>
           <div style={{ fontWeight: 600 }}>{MARKETING_IN_SCOPE} agents</div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>use the weakest path their policy allows</div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 8 }}>MKT-01 and 7 more policies</div>
+          <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.65)' }}>use the weakest path their policy allows</div>
+          <div style={{ fontSize: 13, color: 'rgba(0,0,0,0.65)', marginTop: 8 }}>MKT-01 and 7 more policies</div>
         </div>
       </Widget>
 
