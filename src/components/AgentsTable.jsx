@@ -156,6 +156,15 @@ function ColumnManager({ order, setOrder, hidden, setHidden }) {
 export default function AgentsTable({ rows, selected, onSelected, filters, setFilters, onBulk, onAskAi }) {
   const [query, setQuery] = useState('')
   const [order, setOrder] = useState(DEFAULT_ORDER)
+  // The footer stays flat until the list actually moves under it, and settles again at the end.
+  const [filterShadow, setFilterShadow] = useState(false)
+  const measureFilterScroll = (el) => {
+    if (!el) return
+    const scrolled = el.scrollTop > 2
+    const below = el.scrollHeight - el.scrollTop - el.clientHeight > 2
+    const lifted = scrolled && below
+    setFilterShadow((prev) => (prev === lifted ? prev : lifted))
+  }
   const [hidden, setHidden] = useState(DEFAULT_HIDDEN)
 
   // The table filters the rows itself, so the count in the Agent header is always the count
@@ -185,7 +194,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
 
   const filtersMenu = (
     <div className="filter-panel">
-      <div className="filter-scroll">
+      <div className="filter-scroll" ref={measureFilterScroll} onScroll={(e) => measureFilterScroll(e.currentTarget)}>
         {Object.entries(FILTER_DEFS).map(([key, def]) => (
           <div key={key} className="filter-group">
             <div className="filter-group-title">{def.label}</div>
@@ -198,7 +207,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         ))}
       </div>
       {/* Pinned, so Clear all is never something you have to scroll to the bottom to find. */}
-      <div className="filter-foot">
+      <div className={`filter-foot${filterShadow ? ' lifted' : ''}`}>
         <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setFilters({})}>
           Clear all
         </Button>

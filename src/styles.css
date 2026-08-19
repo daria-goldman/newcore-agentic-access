@@ -140,9 +140,11 @@ body {
 .filter-group .ant-checkbox-group { display: flex; flex-direction: column; gap: 9px; }
 .filter-foot {
   border-top: 1px solid #f0f0f0; padding: 8px 14px; background: #fff;
-  /* Lifted off the list, so it is clear the options scroll underneath it. */
-  box-shadow: 0 -6px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: none;
+  transition: box-shadow 160ms ease;
 }
+/* Only while options are still hidden under it. */
+.filter-foot.lifted { box-shadow: 0 -6px 10px rgba(0, 0, 0, 0.05); }
 
 .col-manager { background: #fff; border-radius: 8px; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12); padding: 10px 12px; width: 250px; }
 .col-manager-head { font-size: 12px; color: rgba(0, 0, 0, 0.45); margin-bottom: 6px; }
