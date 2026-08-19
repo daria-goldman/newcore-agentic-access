@@ -6,7 +6,7 @@ import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
 import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS, affectedAgents, applyFixes, computeStats } from './data.js'
-import { countMatching, explain, parseQuery } from './query.js'
+import { countMatching, explain, isClearCommand, parseQuery } from './query.js'
 
 // A set the assistant derives can be pushed to the table, but only when the admin asks for it.
 // The chat never changes what the screen shows behind their back.
@@ -63,8 +63,10 @@ export default function App() {
   // A question typed against the table becomes its own chat: the words are turned into the same
   // filters the admin could set by hand, and applied only when they say so.
   const startFilterChat = (text) => {
-    const parsed = parseQuery(text)
-    const count = Object.keys(parsed).length ? countMatching(parsed) : null
+    const cleared = isClearCommand(text)
+    const parsed = cleared ? {} : parseQuery(text)
+    const count = cleared ? AGENTS.length : Object.keys(parsed).length ? countMatching(parsed) : null
+    if (cleared) setFilters({})
     const id = `c${++chatSeq}`
     setChats((prev) => [
       {
@@ -74,7 +76,8 @@ export default function App() {
         query: text,
         parsed,
         count,
-        explanation: count === null ? null : explain(parsed, count),
+        cleared,
+        explanation: cleared || count === null ? null : explain(parsed, count),
         step: 'thinking',
         pending: 'filterResult',
         findings: [],

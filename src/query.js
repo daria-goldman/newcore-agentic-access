@@ -97,6 +97,15 @@ export function parseQuery(text) {
   return filters
 }
 
+// Commands about the table itself, not about which agents to find.
+export function isClearCommand(text) {
+  const t = ` ${text.toLowerCase()} `
+  const clears = /(clear|remove|reset|drop|убери|убрать|сбрось|сбросить|очисти|очистить|сними|снять)/.test(t)
+  const target = /(filter|фильтр)/.test(t)
+  const showAll = /(show|покажи)\s+(me\s+)?(all|every|всех|все)\s+(agents|агент)/.test(t)
+  return (clears && target) || showAll
+}
+
 export const FILTER_MATCH = {
   dept: (r, v) => (v === 'Not derived' ? r.dept.kind === 'suggested' : r.dept.kind !== 'suggested' && r.dept.value === v),
   owner: (r, v) => (v === 'No owner' ? !r.owner : !!r.owner),

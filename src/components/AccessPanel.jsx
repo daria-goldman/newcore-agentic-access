@@ -15,7 +15,7 @@ import {
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
-import { answerFor, countMatching } from '../query.js'
+import { answerFor, countMatching, isClearCommand, parseQuery } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
 const SUGGESTION_ICON = { harden: <ShieldCheckIcon />, owners: <AccountIcon />, path: <RouteIcon /> }
@@ -226,8 +226,12 @@ export default function AccessPanel({
     }))
 
   const send = () => {
-    if (tableAttached) {
-      const text = draft.trim() || 'Show me agents with no owner'
+    const typed = draft.trim()
+    // A request about the table is a request about the table, whether or not the chip is attached.
+    const aboutTable =
+      tableAttached || (typed && (isClearCommand(typed) || Object.keys(parseQuery(typed)).length > 0))
+    if (aboutTable) {
+      const text = typed || 'Show me agents with no owner'
       setDraft('')
       startFilterChat(text)
       return
@@ -266,6 +270,12 @@ export default function AccessPanel({
       return <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>{m.text}</div>
 
     if (m.kind === 'filterResult') {
+      if (chat.cleared)
+        return (
+          <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
+            Filters cleared. The table is back to all {chat.count} agents.
+          </div>
+        )
       if (chat.count === null)
         return (
           <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
