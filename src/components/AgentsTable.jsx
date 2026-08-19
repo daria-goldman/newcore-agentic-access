@@ -248,10 +248,9 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     if (key === 'action')
       base.render = (_, r) => (
         // One square control per row instead of the word Actions repeated down the page.
+        // No tooltip: the column header already says what this opens.
         <Dropdown menu={{ items: actionItems(1), onClick: ({ key: k }) => onBulk(k, [r.key]) }} trigger={['click']}>
-          <Tooltip title="Actions">
-            <Button className="btn-muted" icon={<ChevronDownIcon />} />
-          </Tooltip>
+          <Button className="btn-muted" icon={<ChevronDownIcon />} />
         </Dropdown>
       )
     return base
