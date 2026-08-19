@@ -5,7 +5,6 @@ Prototype of the agentic experience for the IAM admin, built around one request:
 > I want to harden the access of my marketing agents.
 
 Live: **https://newcore-agentic-access.vercel.app/**
-Mirror: https://daria-goldman.github.io/newcore-agentic-access/
 
 ## What this screen argues
 
@@ -37,6 +36,22 @@ collapsible assistant.
 npm install
 npm run dev
 ```
+
+## Access and configuration
+
+The deployment is behind basic auth. `middleware.js` asks for a password taken from the
+`SITE_PASSWORD` environment variable on Vercel. With no variable set the site stays open, so a
+missing setting never breaks a review.
+
+`api/ask.js` answers typed questions with Claude, constrained to the estate in `src/data.js`:
+it is told to invent nothing, to say when it does not know, and to never promise a change.
+It runs only when `ANTHROPIC_API_KEY` is set. Without a key the panel falls back to the rules in
+`src/query.js`, so the prototype works offline and a demo never depends on the network.
+
+| Variable | What it does |
+|---|---|
+| `SITE_PASSWORD` | Password for the whole site, any username works |
+| `ANTHROPIC_API_KEY` | Enables the live answers, optional |
 
 ## Stack
 

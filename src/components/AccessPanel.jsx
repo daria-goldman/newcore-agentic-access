@@ -175,6 +175,35 @@ export default function AccessPanel({
   const toggle = (id) =>
     updateChat(chat.id, (prev) => ({ findings: prev.findings.map((f) => (f.id === id ? { ...f, on: !f.on } : f)) }))
 
+  // The endpoint answers only from the estate data and only when a key is configured on the
+  // server. Without one the prototype falls back to the rules it already carries, so a demo
+  // never depends on the network.
+  const askAssistant = async (text, current) => {
+    let answer = null
+    try {
+      const res = await fetch('/api/ask', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          question: text,
+          history: current.messages.filter((m) => m.text).slice(-6).map((m) => ({ role: m.role, text: m.text })),
+        }),
+      })
+      if (res.ok) answer = (await res.json()).text
+    } catch (e) {
+      answer = null
+    }
+    if (!answer) answer = answerFor(text)
+    if (!answer)
+      answer =
+        'I can only answer from what this screen holds: the agents, their owners, the findings and the policies behind them. Ask about one of those, or attach the table and describe a filter.'
+    updateChat(current.id, (prev) => ({
+      messages: prev.messages.map((m, i) =>
+        i === prev.messages.length - 1 && m.kind === 'thinking' ? { role: 'assistant', kind: 'note', text: answer } : m,
+      ),
+    }))
+  }
+
   const ask = (text, nextStep) =>
     updateChat(chat.id, (prev) => ({
       step: 'thinking',
@@ -189,13 +218,14 @@ export default function AccessPanel({
       startFilterChat(text)
       return
     }
-    const answer = draft.trim() && chat ? answerFor(draft.trim()) : null
-    if (answer) {
+    // A typed question inside an open chat is answered, not turned into a new scenario.
+    if (draft.trim() && chat) {
       const text = draft.trim()
       setDraft('')
       updateChat(chat.id, (prev) => ({
-        messages: [...prev.messages, { role: 'user', text }, { role: 'assistant', kind: 'note', text: answer }],
+        messages: [...prev.messages, { role: 'user', text }, { role: 'assistant', kind: 'thinking' }],
       }))
+      askAssistant(text, chat)
       return
     }
     const widget = attachedWidgets[0]

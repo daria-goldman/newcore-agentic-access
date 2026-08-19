@@ -43,27 +43,31 @@ export function SeverityBar({ data }) {
 
 export function Trend({ open, resolved, labels }) {
   const w = 250
-  const h = 96
-  const max = Math.max(...open, ...resolved) * 1.15
-  const path = (series) =>
-    series
-      .map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i / (series.length - 1)) * w} ${h - (v / max) * h}`)
-      .join(' ')
+  const h = 92
+  // Zero stays the baseline, and the space under each line is filled instead of left empty,
+  // so the chart reads as one block with its legend rather than a line floating in a box.
+  const max = Math.max(...open, ...resolved) * 1.05
+  const x = (i, series) => (i / (series.length - 1)) * w
+  const y = (v) => h - (v / max) * h
+  const line = (series) => series.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i, series)} ${y(v)}`).join(' ')
+  const area = (series) => `${line(series)} L ${w} ${h} L 0 ${h} Z`
   return (
     <div>
-      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
-        {[0.25, 0.5, 0.75].map((g) => (
-          <line key={g} x1="0" x2={w} y1={h * g} y2={h * g} stroke="#f0f0f0" strokeWidth="1" />
+      <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+        {[0.33, 0.66].map((g) => (
+          <line key={g} x1="0" x2={w} y1={h * g} y2={h * g} stroke="#f5f5f5" strokeWidth="1" />
         ))}
-        <path d={path(resolved)} fill="none" stroke="#d9d9d9" strokeWidth="2" vectorEffect="non-scaling-stroke" />
-        <path d={path(open)} fill="none" stroke="#1677ff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <path d={area(resolved)} fill="#d9d9d9" opacity="0.35" />
+        <path d={area(open)} fill="#1677ff" opacity="0.10" />
+        <path d={line(resolved)} fill="none" stroke="#d9d9d9" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <path d={line(open)} fill="none" stroke="#1677ff" strokeWidth="2" vectorEffect="non-scaling-stroke" />
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 2 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 4 }}>
         {labels.map((l) => (
           <span key={l}>{l}</span>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 4 }}>
+      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 2 }}>
         <span className="legend-row">
           <i style={{ width: 14, height: 2, background: '#1677ff' }} /> Open
         </span>
