@@ -15,7 +15,7 @@ import {
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
-import { answerFor } from '../query.js'
+import { answerFor, countMatching } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
 const SUGGESTION_ICON = { harden: <ShieldCheckIcon />, owners: <AccountIcon />, path: <RouteIcon /> }
@@ -353,12 +353,15 @@ export default function AccessPanel({
             ) : null}
           </div>
           {isLast ? (
-            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-              <Button type="primary" onClick={() => ask(`Show the ${chat.findings.length} findings`, 'findings')}>
-                Show the {chat.findings.length} findings
+            // One action and one link, not three buttons that all read as "show me something".
+            <div style={{ display: 'flex', gap: 14, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Button type="primary" onClick={() => ask('What would you change?', 'findings')}>
+                What would you change?
               </Button>
               {scenario.scope ? (
-                <Button onClick={() => applyFilters(scopeFilters[scenario.scope])}>Show this set in the table</Button>
+                <Button type="link" style={{ padding: 0 }} onClick={() => applyFilters(scopeFilters[scenario.scope])}>
+                  Show these {countMatching(scopeFilters[scenario.scope])} in the table
+                </Button>
               ) : null}
             </div>
           ) : null}
