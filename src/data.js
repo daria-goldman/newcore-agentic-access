@@ -61,11 +61,14 @@ const fmt = (ts) => {
 const AGO_BY_USAGE = { daily: [0, 1], weekly: [2, 7], monthly: [8, 34], 'idle 2 mo': [60, 75], 'idle 4 mo': [120, 140] }
 function lastUsedFor(usage, roll) {
   const [from, to] = AGO_BY_USAGE[usage] || [1, 30]
-  return fmt(TODAY - (from + Math.floor(roll * (to - from))) * DAY)
+  return TODAY - (from + Math.floor(roll * (to - from))) * DAY
 }
-function createdFor(usage, roll) {
-  return fmt(TODAY - (120 + Math.floor(roll * 900)) * DAY)
+function createdFor(roll) {
+  return TODAY - (120 + Math.floor(roll * 900)) * DAY
 }
+export const DAY_MS = DAY
+export const TODAY_MS = TODAY
+export const formatDate = fmt
 
 function buildAgents() {
   const rows = []
@@ -75,8 +78,8 @@ function buildAgents() {
       key: `a${i}`,
       name: d.name,
       sponsor: i === 3 ? 'Dana Weiss' : i === 4 ? null : ['Tal Barak', 'Yael Golan', 'Omer Sharon', null, null][i % 5],
-      lastUsed: lastUsedFor(d.usage, roll),
-      created: createdFor(d.usage, rnd()),
+      lastUsedTs: lastUsedFor(d.usage, roll),
+      createdTs: createdFor(rnd()),
       dept: d.dept,
       owner: d.owner ? d.owner.name : null,
       ownerNote: d.owner ? d.owner.note : d.ownerNote,
@@ -153,8 +156,8 @@ function buildAgents() {
       // A sponsor is a second accountable human. Fewer than half of the estate has one,
       // and that is the point: it is the fallback that is usually missing.
       sponsor: sponsorRoll < (owner ? 0.45 : 0.3) ? ownerFor(n + 3) : null,
-      lastUsed: lastUsedFor(usage, rnd()),
-      created: createdFor(usage, rnd()),
+      lastUsedTs: lastUsedFor(usage, rnd()),
+      createdTs: createdFor(rnd()),
       ownerNote,
       ownerGap,
       risk: roll < 0.1 ? 'High' : roll < 0.42 ? 'Medium' : 'Low',
@@ -169,7 +172,11 @@ function buildAgents() {
   return rows
 }
 
-export const AGENTS = buildAgents()
+export const AGENTS = buildAgents().map((a) => ({
+  ...a,
+  lastUsed: fmt(a.lastUsedTs),
+  created: fmt(a.createdTs),
+}))
 export const MARKETING_AGENTS = AGENTS.filter((a) => a.inScope)
 export const UNRESOLVED_AGENTS = AGENTS.filter((a) => a.unresolved)
 export const UNOWNED_AGENTS = AGENTS.filter((a) => !a.owner)

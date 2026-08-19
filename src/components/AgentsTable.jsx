@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { ACTION_GROUPS } from '../data.js'
+import { FILTER_MATCH } from '../query.js'
 
 const riskColor = { High: 'red', Medium: 'gold', Low: 'default' }
 
@@ -19,8 +20,8 @@ const COLUMN_DEFS = {
   status: { title: 'Status', width: 120, filter: 'status' },
   // Off by default: useful, but not what the admin scans for first.
   sponsor: { title: 'Sponsor', width: 170, filter: 'sponsor', optional: true },
-  lastUsed: { title: 'Last used', width: 130, optional: true },
-  created: { title: 'Date created', width: 130, optional: true },
+  lastUsed: { title: 'Last used', width: 140, filter: 'lastUsed', optional: true },
+  created: { title: 'Date created', width: 140, filter: 'created', optional: true },
   action: { title: 'Action', width: 110, pinned: 'last' },
 }
 const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'sponsor', 'lastUsed', 'created', 'action']
@@ -30,26 +31,18 @@ const FILTER_DEFS = {
   dept: {
     label: 'Department',
     options: ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People', 'Not derived'],
-    match: (r, v) => (v === 'Not derived' ? r.dept.kind === 'suggested' : r.dept.kind !== 'suggested' && r.dept.value === v),
   },
-  owner: {
-    label: 'Owner',
-    options: ['Has an owner', 'No owner'],
-    match: (r, v) => (v === 'No owner' ? !r.owner : !!r.owner),
-  },
-  risk: { label: 'Risk', options: ['High', 'Medium', 'Low'], match: (r, v) => r.risk === v },
-  usage: {
-    label: 'Usage',
-    options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'],
-    match: (r, v) => r.usage === v,
-  },
-  status: { label: 'Status', options: ['Active', 'On review'], match: (r, v) => r.status === v },
-  sponsor: {
-    label: 'Sponsor',
-    options: ['Has a sponsor', 'No sponsor'],
-    match: (r, v) => (v === 'No sponsor' ? !r.sponsor : !!r.sponsor),
-  },
+  owner: { label: 'Owner', options: ['Has an owner', 'No owner'] },
+  risk: { label: 'Risk', options: ['High', 'Medium', 'Low'] },
+  usage: { label: 'Usage', options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'] },
+  status: { label: 'Status', options: ['Active', 'On review'] },
+  sponsor: { label: 'Sponsor', options: ['Has a sponsor', 'No sponsor'] },
+  lastUsed: { label: 'Last used', options: ['Today', 'This week', 'This month', 'Older than 3 months'] },
+  created: { label: 'Date created', options: ['Last 30 days', 'This year', 'Older than a year'] },
 }
+Object.entries(FILTER_DEFS).forEach(([key, def]) => {
+  def.match = FILTER_MATCH[key]
+})
 
 // One menu definition, used both for a single row and for a selection, with the labels
 // following the count.

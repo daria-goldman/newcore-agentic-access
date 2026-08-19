@@ -63,6 +63,14 @@ export function Trend({ open, resolved, labels }) {
           <span key={l}>{l}</span>
         ))}
       </div>
+      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 4 }}>
+        <span className="legend-row">
+          <i style={{ width: 14, height: 2, background: '#1677ff' }} /> Open
+        </span>
+        <span className="legend-row">
+          <i style={{ width: 14, height: 2, background: '#d9d9d9' }} /> Resolved
+        </span>
+      </div>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import {
 import { BackIcon, HistoryIcon, PanelClose, PanelOpen, PlusIcon } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { OPEN_FINDINGS, SCENARIOS, SUGGESTIONS, UNOWNED_TOTAL, WIDGET_TO_SCENARIO } from '../data.js'
+import { answerFor } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
 const SUGGESTION_ICON = { harden: <SafetyCertificateOutlined />, owners: <UserOutlined />, path: <KeyOutlined /> }
@@ -25,6 +26,7 @@ function timeLabel(ts) {
 }
 
 export function chatSummary(chat) {
+  if (chat.kind === 'filter') return chat.count === null ? 'Nothing to filter on' : `${chat.count} agents match`
   const s = SCENARIOS[chat.scenarioKey]
   if (chat.step === 'thinking') return 'Thinking'
   if (chat.step === 'reading') return 'Reading your estate'
@@ -63,8 +65,13 @@ export default function AccessPanel({
   chats,
   chat,
   startChat,
+  startFilterChat,
   updateChat,
   openChat,
+  applyFilters,
+  scopeFilters,
+  tableAttached,
+  onDetachTable,
   attachedWidgets,
   attachedAgents,
   onDetachWidget,
@@ -75,7 +82,7 @@ export default function AccessPanel({
   const [draft, setDraft] = useState('')
   const bottomRef = useRef(null)
 
-  const scenario = chat ? SCENARIOS[chat.scenarioKey] : null
+  const scenario = chat && chat.scenarioKey ? SCENARIOS[chat.scenarioKey] : null
   const step = chat ? chat.step : null
 
   // Every wait is a real pause before the answer, so the exchange reads like a conversation
@@ -83,7 +90,7 @@ export default function AccessPanel({
   useEffect(() => {
     if (step !== 'thinking' || !chat) return
     const next = chat.pending
-    const wait = next === 'reading' ? 3000 : 1400
+    const wait = next === 'reading' ? 3000 : next === 'filterResult' ? 1800 : 1400
     const t = setTimeout(() => {
       updateChat(chat.id, (prev) => ({
         step: next,
@@ -97,7 +104,7 @@ export default function AccessPanel({
   }, [step, chat?.id, chat?.pending])
 
   useEffect(() => {
-    if (step !== 'reading' || !chat) return
+    if (step !== 'reading' || !chat || !scenario) return
     setVisibleLines(0)
     const lines = scenario.reading
     const timers = lines.map((_, i) => setTimeout(() => setVisibleLines(i + 1), 250 + i * 650))
@@ -176,6 +183,21 @@ export default function AccessPanel({
     }))
 
   const send = () => {
+    if (tableAttached) {
+      const text = draft.trim() || 'Show me agents with no owner'
+      setDraft('')
+      startFilterChat(text)
+      return
+    }
+    const answer = draft.trim() && chat ? answerFor(draft.trim()) : null
+    if (answer) {
+      const text = draft.trim()
+      setDraft('')
+      updateChat(chat.id, (prev) => ({
+        messages: [...prev.messages, { role: 'user', text }, { role: 'assistant', kind: 'note', text: answer }],
+      }))
+      return
+    }
     const widget = attachedWidgets[0]
     const chips = [...attachedWidgets, ...(attachedAgents.length > 3 ? [`${attachedAgents.length} agents`] : attachedAgents)]
     const text = draft.trim() || (widget ? `What should I do about ${widget.toLowerCase()}?` : 'What should I do about these agents?')
@@ -183,11 +205,60 @@ export default function AccessPanel({
     startChat(widget ? WIDGET_TO_SCENARIO[widget] : 'harden', { text, chips })
   }
 
-  const canSend = attachedWidgets.length > 0 || attachedAgents.length > 0 || draft.trim().length > 0
+  const canSend = attachedWidgets.length > 0 || attachedAgents.length > 0 || tableAttached || draft.trim().length > 0
   const title =
-    view === 'list' ? 'Chats' : view === 'chat' && scenario ? scenario.title : chats.length ? 'New chat' : 'Access AI'
+    view === 'list'
+      ? 'Chats'
+      : view === 'chat' && chat
+        ? chat.kind === 'filter'
+          ? chat.query
+          : scenario?.title
+        : chats.length
+          ? 'New chat'
+          : 'Access AI'
 
   const renderAssistant = (m, isLast) => {
+    if (m.kind === 'note')
+      return <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>{m.text}</div>
+
+    if (m.kind === 'filterResult') {
+      if (chat.count === null)
+        return (
+          <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
+            I could not turn that into a filter. Name a department, a risk level, a status, or say something like
+            <b> no owner</b>, <b>idle</b> or <b>no sponsor</b>.
+          </div>
+        )
+      return (
+        <div className="step" style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>{chat.count} agents match</div>
+          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 8px' }}>
+            Turned into these filters, the same ones you can set by hand.
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+            {Object.entries(chat.parsed).flatMap(([key, values]) =>
+              values.map((v) => (
+                <Tag key={`${key}-${v}`} color="blue">
+                  {v}
+                </Tag>
+              )),
+            )}
+          </div>
+          {chat.explanation?.note ? <div className="blind">{chat.explanation.note}</div> : null}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            {chat.count > 0 ? (
+              <Button type="primary" onClick={() => applyFilters(chat.parsed)}>
+                Show them in the table
+              </Button>
+            ) : null}
+            {chat.explanation?.suggestion ? (
+              <Button onClick={() => applyFilters(chat.explanation.suggestion)}>{chat.explanation.suggestionLabel}</Button>
+            ) : null}
+          </div>
+        </div>
+      )
+    }
+
     if (m.kind === 'thinking')
       return (
         <div className="thinking pulsing">
@@ -229,9 +300,14 @@ export default function AccessPanel({
           </div>
           <div className="blind">{scenario.blind}</div>
           {isLast ? (
-            <Button type="primary" style={{ marginTop: 12 }} onClick={() => ask(`Show the ${chat.findings.length} findings`, 'findings')}>
-              Show the {chat.findings.length} findings
-            </Button>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <Button type="primary" onClick={() => ask(`Show the ${chat.findings.length} findings`, 'findings')}>
+                Show the {chat.findings.length} findings
+              </Button>
+              {scenario.scope ? (
+                <Button onClick={() => applyFilters(scopeFilters[scenario.scope])}>Show this set in the table</Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       )
@@ -395,7 +471,7 @@ export default function AccessPanel({
                     <MessageOutlined />
                   </span>
                   <div style={{ minWidth: 0, flex: '1 1 auto' }}>
-                    <div className="chat-title">{SCENARIOS[c.scenarioKey].title}</div>
+                    <div className="chat-title">{c.kind === 'filter' ? c.query : SCENARIOS[c.scenarioKey].title}</div>
                     <div className="chat-sub">{chatSummary(c)}</div>
                   </div>
                   <span className="chat-time">{timeLabel(c.createdAt)}</span>
@@ -446,8 +522,13 @@ export default function AccessPanel({
 
       <div className="panel-foot">
         <div className="composer">
-          {attachedWidgets.length || attachedAgents.length ? (
+          {attachedWidgets.length || attachedAgents.length || tableAttached ? (
             <div className="composer-chips">
+              {tableAttached ? (
+                <Tag color="blue" closable onClose={onDetachTable}>
+                  Agents table
+                </Tag>
+              ) : null}
               {attachedWidgets.map((w) => (
                 <Tag key={w} color="blue" closable onClose={() => onDetachWidget(w)}>
                   {w}

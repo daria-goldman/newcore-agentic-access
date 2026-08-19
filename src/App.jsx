@@ -6,9 +6,10 @@ import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
 import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS } from './data.js'
+import { countMatching, explain, parseQuery } from './query.js'
 
-// A set the assistant derives is expressed as ordinary table filters, so the admin sees the
-// same chips they would have set by hand and can take any of them off.
+// A set the assistant derives can be pushed to the table, but only when the admin asks for it.
+// The chat never changes what the screen shows behind their back.
 const SCOPE_FILTERS = {
   marketing: { dept: ['Marketing'] },
   unowned: { owner: ['No owner'] },
@@ -23,6 +24,7 @@ export default function App() {
   const [filters, setFilters] = useState({})
   const [selected, setSelected] = useState([])
   const [widget, setWidget] = useState(null)
+  const [tableAttached, setTableAttached] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [msg, holder] = message.useMessage()
 
@@ -52,18 +54,47 @@ export default function App() {
     setActiveId(id)
     setView('chat')
     setCollapsed(false)
-    if (scenario.scope) setFilters(SCOPE_FILTERS[scenario.scope])
+  }
+
+  // A question typed against the table becomes its own chat: the words are turned into the same
+  // filters the admin could set by hand, and applied only when they say so.
+  const startFilterChat = (text) => {
+    const parsed = parseQuery(text)
+    const count = Object.keys(parsed).length ? countMatching(parsed) : null
+    const id = `c${++chatSeq}`
+    setChats((prev) => [
+      {
+        id,
+        kind: 'filter',
+        scenarioKey: null,
+        query: text,
+        parsed,
+        count,
+        explanation: count === null ? null : explain(parsed, count),
+        step: 'thinking',
+        pending: 'filterResult',
+        findings: [],
+        applied: [],
+        messages: [
+          { role: 'user', text, chips: ['Agents table'] },
+          { role: 'assistant', kind: 'thinking' },
+        ],
+        createdAt: Date.now(),
+      },
+      ...prev,
+    ])
+    setActiveId(id)
+    setView('chat')
+    setCollapsed(false)
+    setTableAttached(false)
   }
 
   const updateChat = (id, patch) =>
     setChats((prev) => prev.map((c) => (c.id === id ? { ...c, ...(typeof patch === 'function' ? patch(c) : patch) } : c)))
 
   const openChat = (id) => {
-    const target = chats.find((c) => c.id === id)
     setActiveId(id)
     setView('chat')
-    const s = target ? SCENARIOS[target.scenarioKey] : null
-    if (s?.scope) setFilters(SCOPE_FILTERS[s.scope])
   }
 
   const attachedAgents = useMemo(
@@ -122,6 +153,7 @@ export default function App() {
             onManage={() => setCollapsed(false)}
             onAskAi={() => {
               setCollapsed(false)
+              setTableAttached(true)
               setView('new')
             }}
           />
@@ -136,8 +168,13 @@ export default function App() {
         chats={chats}
         chat={chat}
         startChat={startChat}
+        startFilterChat={startFilterChat}
         updateChat={updateChat}
         openChat={openChat}
+        applyFilters={setFilters}
+        scopeFilters={SCOPE_FILTERS}
+        tableAttached={tableAttached}
+        onDetachTable={() => setTableAttached(false)}
         attachedWidgets={widget ? [widget] : []}
         attachedAgents={attachedAgents}
         onDetachWidget={() => setWidget(null)}

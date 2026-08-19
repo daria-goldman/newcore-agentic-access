@@ -119,7 +119,7 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
         title="Issue trend"
         extra={
           <span style={{ color: '#cf1322', fontSize: 12 }}>
-            <ArrowUpOutlined /> {TREND.delta} in 90 days
+            <ArrowUpOutlined /> +{TREND.delta} issues in 90 days
           </span>
         }
         selected={false}
@@ -127,14 +127,6 @@ export default function RiskWidgets({ onFix, selected, onToggle }) {
         onFix={() => {}}
       >
         <Trend open={TREND.open} resolved={TREND.resolved} labels={TREND.labels} />
-        <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
-          <span className="legend-row">
-            <i style={{ width: 14, height: 2, background: '#1677ff' }} /> Open
-          </span>
-          <span className="legend-row">
-            <i style={{ width: 14, height: 2, background: '#d9d9d9' }} /> Resolved
-          </span>
-        </div>
       </Widget>
     </div>
   )
