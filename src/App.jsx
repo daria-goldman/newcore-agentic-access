@@ -5,22 +5,58 @@ import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
-import { AGENTS, BULK_ACTIONS, MARKETING_AGENTS, UNOWNED_AGENTS } from './data.js'
+import { AGENTS, ALL_FINDINGS, BULK_ACTIONS, MARKETING_AGENTS, MARKETING_IN_SCOPE, SCENARIOS, UNOWNED_AGENTS } from './data.js'
+
+const SCOPE_LABEL = {
+  marketing: `Access AI set · ${MARKETING_IN_SCOPE} marketing agents`,
+  unowned: `Access AI set · ${UNOWNED_AGENTS.length} agents without an owner`,
+}
+let chatSeq = 0
 
 export default function App() {
   const [collapsed, setCollapsed] = useState(false)
-  const [step, setStepRaw] = useState('idle')
-  const [scenarioKey, setScenarioKey] = useState('harden')
+  const [view, setView] = useState('new')
+  const [chats, setChats] = useState([])
+  const [activeId, setActiveId] = useState(null)
   const [scope, setScope] = useState(null)
   const [selected, setSelected] = useState([])
   const [widgets, setWidgets] = useState([])
   const [emailOpen, setEmailOpen] = useState(false)
   const [msg, holder] = message.useMessage()
 
-  const setStep = (next, key) => {
-    if (key) setScenarioKey(key)
-    setStepRaw(next)
-    if (next !== 'idle') setCollapsed(false)
+  const chat = chats.find((c) => c.id === activeId) || null
+
+  // Every run is its own chat, so the admin can leave one in the middle, look at the screen
+  // and come back to it. Nothing that was started disappears.
+  const startChat = (scenarioKey) => {
+    const scenario = SCENARIOS[scenarioKey]
+    const id = `c${++chatSeq}`
+    setChats((prev) => [
+      {
+        id,
+        scenarioKey,
+        step: 'reading',
+        findings: scenario.findings.map((fid) => ({ ...ALL_FINDINGS.find((f) => f.id === fid) })),
+        applied: [],
+        createdAt: Date.now(),
+      },
+      ...prev,
+    ])
+    setActiveId(id)
+    setView('chat')
+    setCollapsed(false)
+    setScope(scenario.scope ? { kind: scenario.scope, label: SCOPE_LABEL[scenario.scope] } : null)
+  }
+
+  const updateChat = (id, patch) =>
+    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, ...(typeof patch === 'function' ? patch(c) : patch) } : c)))
+
+  const openChat = (id) => {
+    const target = chats.find((c) => c.id === id)
+    setActiveId(id)
+    setView('chat')
+    const s = target ? SCENARIOS[target.scenarioKey] : null
+    setScope(s?.scope ? { kind: s.scope, label: SCOPE_LABEL[s.scope] } : null)
   }
 
   const rows = useMemo(() => {
@@ -68,7 +104,7 @@ export default function App() {
         <div className="page">
           <h1 className="page-title">Risk Manager</h1>
           <div className="section-label">Risks</div>
-          <RiskWidgets onFix={(key) => setStep('reading', key)} selected={widgets} onToggle={toggleWidget} />
+          <RiskWidgets onFix={startChat} selected={widgets} onToggle={toggleWidget} />
           <div className="section-gap" />
           <div className="section-label">Agents</div>
           <AgentsTable
@@ -81,7 +117,7 @@ export default function App() {
             onManage={() => setCollapsed(false)}
             onAskAi={() => {
               setCollapsed(false)
-              setStep('idle')
+              setView('new')
             }}
           />
         </div>
@@ -90,14 +126,17 @@ export default function App() {
       <AccessPanel
         collapsed={collapsed}
         onCollapse={() => setCollapsed((v) => !v)}
-        step={step}
-        setStep={setStep}
-        scenarioKey={scenarioKey}
+        view={view}
+        setView={setView}
+        chats={chats}
+        chat={chat}
+        startChat={startChat}
+        updateChat={updateChat}
+        openChat={openChat}
         attachedWidgets={widgets}
         attachedAgents={attachedAgents}
         onDetachWidget={(w) => setWidgets((prev) => prev.filter((x) => x !== w))}
         onDetachAgents={() => setSelected([])}
-        onScope={setScope}
         onOpenEmail={() => setEmailOpen(true)}
       />
 

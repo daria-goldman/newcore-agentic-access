@@ -133,3 +133,44 @@ body {
 .composer { border: 1px solid #d9d9d9; border-radius: 8px; padding: 10px; transition: border-color 140ms ease; }
 .composer:focus-within { border-color: #1677ff; }
 .composer-chips { margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 4px; }
+
+.panel-head { gap: 6px; }
+.panel-head .panel-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn {
+  border: none; background: none; padding: 4px; margin: 0; border-radius: 6px;
+  color: #6b7c8c; display: inline-flex; align-items: center; cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.icon-btn:hover { background: #f5f5f5; color: rgba(0, 0, 0, 0.88); }
+
+.composer .ant-input,
+.composer textarea {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+.composer { transition: border-color 140ms ease, box-shadow 140ms ease; }
+.composer:focus-within { border-color: #1677ff; box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.08); }
+
+.chat-row {
+  display: flex; gap: 10px; align-items: flex-start;
+  padding: 10px; border-radius: 8px; cursor: pointer;
+  transition: background 140ms ease;
+}
+.chat-row:hover { background: #fafafa; }
+.chat-row.active { background: #e6f4ff; }
+.chat-avatar {
+  width: 32px; height: 32px; flex: 0 0 32px; border-radius: 8px;
+  border: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: center;
+  color: #1677ff; background: #fff;
+}
+.chat-title { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chat-sub { font-size: 12px; color: rgba(0, 0, 0, 0.45); }
+.chat-time { font-size: 12px; color: rgba(0, 0, 0, 0.45); margin-left: auto; white-space: nowrap; }
+.chats-empty { font-size: 13px; color: rgba(0, 0, 0, 0.45); padding: 12px 4px; }
+
+.composer textarea:focus,
+.composer textarea:focus-visible,
+.composer .ant-input:focus,
+.composer .ant-input:focus-visible { outline: none !important; }
