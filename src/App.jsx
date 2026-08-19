@@ -5,11 +5,13 @@ import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
-import { AGENTS, ALL_FINDINGS, BULK_ACTIONS, MARKETING_AGENTS, MARKETING_IN_SCOPE, SCENARIOS, UNOWNED_AGENTS } from './data.js'
+import { AGENTS, ALL_FINDINGS, BULK_ACTIONS, SCENARIOS } from './data.js'
 
-const SCOPE_LABEL = {
-  marketing: `Access AI set · ${MARKETING_IN_SCOPE} marketing agents`,
-  unowned: `Access AI set · ${UNOWNED_AGENTS.length} agents without an owner`,
+// A set the assistant derives is expressed as ordinary table filters, so the admin sees the
+// same chips they would have set by hand and can take any of them off.
+const SCOPE_FILTERS = {
+  marketing: { dept: ['Marketing'] },
+  unowned: { owner: ['No owner'] },
 }
 let chatSeq = 0
 
@@ -18,9 +20,9 @@ export default function App() {
   const [view, setView] = useState('new')
   const [chats, setChats] = useState([])
   const [activeId, setActiveId] = useState(null)
-  const [scope, setScope] = useState(null)
+  const [filters, setFilters] = useState({})
   const [selected, setSelected] = useState([])
-  const [widgets, setWidgets] = useState([])
+  const [widget, setWidget] = useState(null)
   const [emailOpen, setEmailOpen] = useState(false)
   const [msg, holder] = message.useMessage()
 
@@ -45,7 +47,7 @@ export default function App() {
     setActiveId(id)
     setView('chat')
     setCollapsed(false)
-    setScope(scenario.scope ? { kind: scenario.scope, label: SCOPE_LABEL[scenario.scope] } : null)
+    if (scenario.scope) setFilters(SCOPE_FILTERS[scenario.scope])
   }
 
   const updateChat = (id, patch) =>
@@ -56,14 +58,8 @@ export default function App() {
     setActiveId(id)
     setView('chat')
     const s = target ? SCENARIOS[target.scenarioKey] : null
-    setScope(s?.scope ? { kind: s.scope, label: SCOPE_LABEL[s.scope] } : null)
+    if (s?.scope) setFilters(SCOPE_FILTERS[s.scope])
   }
-
-  const rows = useMemo(() => {
-    if (scope?.kind === 'marketing') return MARKETING_AGENTS
-    if (scope?.kind === 'unowned') return UNOWNED_AGENTS
-    return AGENTS
-  }, [scope])
 
   const attachedAgents = useMemo(
     () => selected.map((k) => AGENTS.find((a) => a.key === k)?.name).filter(Boolean),
@@ -72,7 +68,7 @@ export default function App() {
 
   const toggleWidget = (title) => {
     setCollapsed(false)
-    setWidgets((prev) => (prev.includes(title) ? prev.filter((w) => w !== title) : [...prev, title]))
+    setWidget((prev) => (prev === title ? null : title))
   }
 
   const onBulk = (key, keys) => {
@@ -104,15 +100,15 @@ export default function App() {
         <div className="page">
           <h1 className="page-title">Risk Manager</h1>
           <div className="section-label">Risks</div>
-          <RiskWidgets onFix={startChat} selected={widgets} onToggle={toggleWidget} />
+          <RiskWidgets onFix={startChat} selected={widget} onToggle={toggleWidget} />
           <div className="section-gap" />
           <div className="section-label">Agents</div>
           <AgentsTable
-            rows={rows}
+            rows={AGENTS}
             selected={selected}
             onSelected={setSelected}
-            scope={scope}
-            onClearScope={() => setScope(null)}
+            filters={filters}
+            setFilters={setFilters}
             onBulk={onBulk}
             onManage={() => setCollapsed(false)}
             onAskAi={() => {
@@ -133,9 +129,9 @@ export default function App() {
         startChat={startChat}
         updateChat={updateChat}
         openChat={openChat}
-        attachedWidgets={widgets}
+        attachedWidgets={widget ? [widget] : []}
         attachedAgents={attachedAgents}
-        onDetachWidget={(w) => setWidgets((prev) => prev.filter((x) => x !== w))}
+        onDetachWidget={() => setWidget(null)}
         onDetachAgents={() => setSelected([])}
         onOpenEmail={() => setEmailOpen(true)}
       />

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
-import { BULK_ACTIONS, TOTAL_AGENTS } from '../data.js'
+import { BULK_ACTIONS } from '../data.js'
 
 const riskColor = { High: 'red', Medium: 'gold', Low: 'default' }
 
@@ -120,26 +120,32 @@ function ColumnManager({ order, setOrder, hidden, setHidden }) {
   )
 }
 
-export default function AgentsTable({ rows, selected, onSelected, scope, onClearScope, onBulk, onManage, onAskAi }) {
+export default function AgentsTable({ rows, selected, onSelected, filters, setFilters, onBulk, onManage, onAskAi }) {
   const [query, setQuery] = useState('')
-  const [filters, setFilters] = useState({})
   const [order, setOrder] = useState(DEFAULT_ORDER)
   const [hidden, setHidden] = useState([])
 
-  const searched = useMemo(() => {
-    if (!query.trim()) return rows
+  // The table filters the rows itself, so the count in the Agent header is always the count
+  // of what you are actually looking at.
+  const visible = useMemo(() => {
+    let out = rows
     const q = query.trim().toLowerCase()
-    return rows.filter((r) => r.name.includes(q) || (r.owner || '').toLowerCase().includes(q))
-  }, [rows, query])
+    if (q) out = out.filter((r) => r.name.includes(q) || (r.owner || '').toLowerCase().includes(q))
+    Object.entries(filters).forEach(([key, values]) => {
+      if (!values || !values.length) return
+      out = out.filter((r) => values.some((v) => FILTER_DEFS[key].match(r, v)))
+    })
+    return out
+  }, [rows, query, filters])
 
   const activeChips = Object.entries(filters).flatMap(([key, values]) =>
     (values || []).map((v) => ({ key, value: v, label: `${FILTER_DEFS[key].label}: ${v}` })),
   )
 
   const removeChip = (key, value) =>
-    setFilters((prev) => ({ ...prev, [key]: (prev[key] || []).filter((v) => v !== value) }))
+    setFilters({ ...filters, [key]: (filters[key] || []).filter((v) => v !== value) })
 
-  const setFilterValues = (key, values) => setFilters((prev) => ({ ...prev, [key]: values }))
+  const setFilterValues = (key, values) => setFilters({ ...filters, [key]: values })
 
   const filtersMenu = (
     <div className="filter-panel">
@@ -166,14 +172,14 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
     const filterKey = def.filter
     const base = {
       key,
-      title: key === 'name' ? `Agent (${scope ? rows.length : TOTAL_AGENTS})` : def.title,
+      title: key === 'name' ? `Agent (${visible.length})` : def.title,
       dataIndex: key === 'action' ? undefined : key,
       width: def.width,
     }
     if (filterKey) {
       base.filters = FILTER_DEFS[filterKey].options.map((o) => ({ text: o, value: o }))
-      base.filteredValue = filters[filterKey] || null
-      base.onFilter = (value, record) => FILTER_DEFS[filterKey].match(record, value)
+      base.filteredValue = filters[filterKey] && filters[filterKey].length ? filters[filterKey] : null
+      base.onFilter = () => true
     }
     if (key === 'dept') base.render = (dept) => <Department dept={dept} />
     if (key === 'owner')
@@ -238,13 +244,8 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
         </Dropdown>
       </div>
 
-      {activeChips.length || scope ? (
+      {activeChips.length ? (
         <div className="chips-row">
-          {scope ? (
-            <Tag color="blue" closable onClose={onClearScope}>
-              {scope.label}
-            </Tag>
-          ) : null}
           {activeChips.map((c) => (
             <Tag key={`${c.key}-${c.value}`} color="blue" closable onClose={() => removeChip(c.key, c.value)}>
               {c.label}
@@ -285,7 +286,7 @@ export default function AgentsTable({ rows, selected, onSelected, scope, onClear
         size="middle"
         rowKey="key"
         columns={columns}
-        dataSource={searched}
+        dataSource={visible}
         onChange={(_p, tableFilters) => {
           const next = {}
           Object.entries(tableFilters).forEach(([colKey, values]) => {

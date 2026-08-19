@@ -40,8 +40,10 @@ function Widget({ title, extra, selected, onToggle, onFix, children, statiс }) 
   )
 }
 
+// Only one widget at a time. Two widgets point at different subjects, and an assistant asked
+// about both at once has to answer about neither.
 export default function RiskWidgets({ onFix, selected, onToggle }) {
-  const is = (t) => selected.includes(t)
+  const is = (t) => selected === t
   return (
     <div className="widgets">
       <Widget title="Threats detected" extra={meta('8 threats')} selected={is('Threats detected')} onToggle={onToggle} onFix={onFix}>

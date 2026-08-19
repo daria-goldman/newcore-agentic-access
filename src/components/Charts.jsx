@@ -1,31 +1,31 @@
 import React from 'react'
 
-export function Donut({ data, size = 96, thickness = 14 }) {
-  const r = (size - thickness) / 2
-  const c = 2 * Math.PI * r
-  let offset = 0
+// Drawn as real arcs instead of a dashed stroke: a dashed circle leaves a seam where the
+// last segment meets the first one, which reads as a rendering bug.
+function arcPath(cx, cy, rOuter, rInner, a0, a1) {
+  const point = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)]
+  const large = a1 - a0 > Math.PI ? 1 : 0
+  const [x0, y0] = point(rOuter, a0)
+  const [x1, y1] = point(rOuter, a1)
+  const [x2, y2] = point(rInner, a1)
+  const [x3, y3] = point(rInner, a0)
+  return `M ${x0} ${y0} A ${rOuter} ${rOuter} 0 ${large} 1 ${x1} ${y1} L ${x2} ${y2} A ${rInner} ${rInner} 0 ${large} 0 ${x3} ${y3} Z`
+}
+
+export function Donut({ data, size = 96, thickness = 14, gap = 0.03 }) {
+  const total = data.reduce((s, d) => s + d.share, 0)
+  const rOuter = size / 2
+  const rInner = size / 2 - thickness
+  let angle = -Math.PI / 2
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Violations by type">
-      <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-        {data.map((d) => {
-          const len = (d.share / 100) * c
-          const el = (
-            <circle
-              key={d.label}
-              cx={size / 2}
-              cy={size / 2}
-              r={r}
-              fill="none"
-              stroke={d.color}
-              strokeWidth={thickness}
-              strokeDasharray={`${len} ${c - len}`}
-              strokeDashoffset={-offset}
-            />
-          )
-          offset += len
-          return el
-        })}
-      </g>
+      {data.map((d) => {
+        const sweep = (d.share / total) * Math.PI * 2
+        const a0 = angle + gap / 2
+        const a1 = angle + sweep - gap / 2
+        angle += sweep
+        return <path key={d.label} d={arcPath(rOuter, rOuter, rOuter, rInner, a0, a1)} fill={d.color} />
+      })}
     </svg>
   )
 }
