@@ -1,16 +1,6 @@
 import React, { useState } from 'react'
 import { Checkbox, Modal, Segmented, Select, Tag } from 'antd'
 
-const FALLBACK = (
-  <div>
-    If nobody replies in 5 days
-    <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
-      the agent keeps running and keeps reading, but anything it tries to write or change waits for a
-      person to approve it. Nothing is deleted, and you can switch this back at any time.
-    </div>
-  </div>
-)
-
 const usageLine = (usage) => {
   if (!usage) return 'has not been used in months'
   const idle = usage.match(/idle (\d+) mo/)
@@ -26,6 +16,8 @@ export default function OwnerRequestModal({ open, onClose, agents = [] }) {
   const managers = [...new Set(agents.map((a) => a.manager).filter(Boolean))]
   const shown = showAll ? managers : managers.slice(0, 5)
   const sample = agents[0]
+  const idle = agents.filter((a) => /idle/.test(a.usage || '')).length || 1
+  const active = agents.length - idle
 
   return (
     <Modal
@@ -106,13 +98,29 @@ export default function OwnerRequestModal({ open, onClose, agents = [] }) {
               <b>{sample?.name || 'content-bot'}</b> has been running without an accountable owner since 12
               April. It reaches {sample?.app || 'Salesforce'} and {usageLine(sample?.usage)}.
             </p>
-            <p style={{ margin: '0 0 10px' }}>Please name an owner, or tell us this agent is not yours.</p>
-            <Tag>Take ownership</Tag>
-            <Tag>Not mine, reassign</Tag>
+            <p style={{ margin: '0 0 10px' }}>Please assign an owner for this agent.</p>
+            <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+              <span className="mail-cta">Assign an owner</span>
+              <a style={{ fontSize: 12 }}>I cannot assign an owner</a>
+            </div>
           </div>
         </div>
 
-        <Checkbox defaultChecked>{FALLBACK}</Checkbox>
+        {/* A request with no consequence gets ignored. A consequence that slows down live work is
+            worse than the problem, so the deadline only touches agents that are not working. */}
+        <Checkbox defaultChecked>
+          <div>
+            If nobody replies in 5 days
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)' }}>
+              {idle} of these agents have not run in months, so they switch to approval only: they keep
+              reading, and anything they try to write waits for a person.
+              {active
+                ? ` The ${active} still in daily use are escalated one level up instead, so nothing running is slowed down.`
+                : ''}{' '}
+              Both are reversible.
+            </div>
+          </div>
+        </Checkbox>
       </div>
     </Modal>
   )
