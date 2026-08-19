@@ -39,10 +39,10 @@ npm run dev
 
 ## Access and configuration
 
-The deployment is behind basic auth. `middleware.js` asks for a password: any username, and the
-password from the `SITE_PASSWORD` environment variable on Vercel, falling back to the one written
-in that file. Setting the variable turns the password into a real secret, since the fallback is
-readable here.
+The deployment is behind a password. `middleware.js` serves a small gate page with a single
+field and sets a cookie for a week once the password matches. It reads `SITE_PASSWORD` from the
+environment on Vercel and falls back to the one written in that file, so setting the variable
+turns the password into a real secret.
 
 `api/ask.js` answers typed questions with Claude, constrained to the estate in `src/data.js`:
 it is told to invent nothing, to say when it does not know, and to never promise a change.
