@@ -148,7 +148,7 @@ export function Trend({ points, tickIndexes }) {
           <line x1={x(hover)} x2={x(hover)} y1="0" y2={h} stroke="#d9d9d9" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         ) : null}
         {/* The axis the dates sit on, so the labels are not floating in the air. */}
-        <line x1="0" x2={w} y1={h} y2={h} stroke="#d9d9d9" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <line x1="0" x2={w} y1={h} y2={h} stroke="#d9d9d9" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       </svg>
 
       {hover !== null ? (
@@ -188,9 +188,9 @@ export function Trend({ points, tickIndexes }) {
               left: `${(i / (points.length - 1)) * 100}%`,
               transform:
                 k === 0 ? 'translateX(0)' : k === tickIndexes.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
-              width: 2,
+              width: 1,
               height: 5,
-              // Same weight and same grey as the axis, so a tick reads as part of the line.
+              // Same hairline weight as the axis and the legend rules.
               background: '#d9d9d9',
             }}
           />

@@ -23,7 +23,7 @@ const COLUMN_DEFS = {
   sponsor: { title: 'Sponsor', width: 170, filter: 'sponsor', optional: true },
   lastUsed: { title: 'Last used', width: 140, filter: 'lastUsed', optional: true },
   created: { title: 'Date created', width: 140, filter: 'created', optional: true },
-  action: { title: 'Action', width: 70, pinned: 'last' },
+  action: { title: 'Actions', width: 80, pinned: 'last' },
 }
 const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'sponsor', 'lastUsed', 'created', 'action']
 const DEFAULT_HIDDEN = ['sponsor', 'lastUsed', 'created']
@@ -241,7 +241,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         // One square control per row instead of the word Actions repeated down the page.
         <Dropdown menu={{ items: actionItems(1), onClick: ({ key: k }) => onBulk(k, [r.key]) }} trigger={['click']}>
           <Tooltip title="Actions">
-            <Button icon={<ChevronDownIcon />} />
+            <Button className="btn-muted" icon={<ChevronDownIcon />} />
           </Tooltip>
         </Dropdown>
       )
@@ -280,7 +280,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
           placement="bottomRight"
         >
           <Tooltip title="Columns">
-            <Button icon={<SettingOutlined />} />
+            <Button className="btn-muted" icon={<SettingOutlined />} />
           </Tooltip>
         </Dropdown>
       </div>

@@ -456,7 +456,7 @@ export default function AccessPanel({
       </div>
       <div className="panel-inner">
       <div className="panel-head">
-        <Tooltip title="Collapse Access AI" placement="bottom">
+        <Tooltip title="Collapse Access AI" placement="left">
           <button className="icon-btn" onClick={onCollapse} aria-label="Collapse Access AI">
             <PanelClose />
           </button>
