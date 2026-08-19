@@ -158,20 +158,6 @@ export default function AccessPanel({
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [chat?.messages?.length, chat?.applied?.length, visibleLines, view])
 
-  if (collapsed) {
-    return (
-      <div className="panel collapsed">
-        <div style={{ padding: 14, display: 'flex', justifyContent: 'center' }}>
-          <Tooltip title="Open Access AI" placement="left">
-            <button className="icon-btn" onClick={onCollapse} aria-label="Open Access AI">
-              <PanelOpen />
-            </button>
-          </Tooltip>
-        </div>
-      </div>
-    )
-  }
-
   const toggle = (id) =>
     updateChat(chat.id, (prev) => ({ findings: prev.findings.map((f) => (f.id === id ? { ...f, on: !f.on } : f)) }))
 
@@ -456,7 +442,17 @@ export default function AccessPanel({
   }
 
   return (
-    <aside className="panel">
+    // One element for both states. Collapsing animates the width and fades the contents out,
+    // instead of swapping one panel for another.
+    <aside className={`panel${collapsed ? ' collapsed' : ''}`}>
+      <div className="panel-rail">
+        <Tooltip title="Open Access AI" placement="left">
+          <button className="icon-btn" onClick={onCollapse} aria-label="Open Access AI" tabIndex={collapsed ? 0 : -1}>
+            <PanelOpen />
+          </button>
+        </Tooltip>
+      </div>
+      <div className="panel-inner">
       <div className="panel-head">
         <Tooltip title="Collapse" placement="bottom">
           <button className="icon-btn" onClick={onCollapse} aria-label="Collapse Access AI">
@@ -596,6 +592,7 @@ export default function AccessPanel({
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </aside>
   )
