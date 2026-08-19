@@ -17,9 +17,14 @@ const COLUMN_DEFS = {
   risk: { title: 'Risk', width: 110, filter: 'risk' },
   usage: { title: 'Usage', width: 110, filter: 'usage' },
   status: { title: 'Status', width: 120, filter: 'status' },
+  // Off by default: useful, but not what the admin scans for first.
+  sponsor: { title: 'Sponsor', width: 170, filter: 'sponsor', optional: true },
+  lastUsed: { title: 'Last used', width: 130, optional: true },
+  created: { title: 'Date created', width: 130, optional: true },
   action: { title: 'Action', width: 110, pinned: 'last' },
 }
-const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'action']
+const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'sponsor', 'lastUsed', 'created', 'action']
+const DEFAULT_HIDDEN = ['sponsor', 'lastUsed', 'created']
 
 const FILTER_DEFS = {
   dept: {
@@ -39,6 +44,11 @@ const FILTER_DEFS = {
     match: (r, v) => r.usage === v,
   },
   status: { label: 'Status', options: ['Active', 'On review'], match: (r, v) => r.status === v },
+  sponsor: {
+    label: 'Sponsor',
+    options: ['Has a sponsor', 'No sponsor'],
+    match: (r, v) => (v === 'No sponsor' ? !r.sponsor : !!r.sponsor),
+  },
 }
 
 // One menu definition, used both for a single row and for a selection, with the labels
@@ -69,7 +79,7 @@ function actionItems(count) {
 function Department({ dept }) {
   if (dept.kind === 'suggested') {
     return (
-      <Tooltip title="No owner, so the department could not be derived. This is a guess from the apps the agent uses.">
+      <Tooltip title="No owner, so the department could not be derived. This is a guess from the people who call this agent.">
         <span className="dept-soft">
           Suggested: {dept.value} · {dept.confidence}%
         </span>
@@ -137,7 +147,7 @@ function ColumnManager({ order, setOrder, hidden, setHidden }) {
       {movable.map((k) => row(k, true))}
       {row('action', false)}
       <div className="col-manager-foot">
-        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => { setOrder(DEFAULT_ORDER); setHidden([]) }}>
+        <Button type="link" size="small" style={{ padding: 0 }} onClick={() => { setOrder(DEFAULT_ORDER); setHidden(DEFAULT_HIDDEN) }}>
           Reset
         </Button>
       </div>
@@ -148,7 +158,7 @@ function ColumnManager({ order, setOrder, hidden, setHidden }) {
 export default function AgentsTable({ rows, selected, onSelected, filters, setFilters, onBulk, onManage, onAskAi }) {
   const [query, setQuery] = useState('')
   const [order, setOrder] = useState(DEFAULT_ORDER)
-  const [hidden, setHidden] = useState([])
+  const [hidden, setHidden] = useState(DEFAULT_HIDDEN)
 
   // The table filters the rows itself, so the count in the Agent header is always the count
   // of what you are actually looking at.
@@ -217,6 +227,9 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         ) : (
           <span className="dept-soft">{r.ownerNote}</span>
         )
+    if (key === 'lastUsed' || key === 'created') base.render = (v) => <span style={{ whiteSpace: 'nowrap' }}>{v}</span>
+    if (key === 'sponsor')
+      base.render = (v) => (v ? <span>{v}</span> : <span className="dept-soft">no sponsor</span>)
     if (key === 'risk') base.render = (v) => <Tag color={riskColor[v]}>{v}</Tag>
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')
@@ -311,6 +324,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
           setFilters(next)
         }}
         rowSelection={{ selectedRowKeys: selected, onChange: onSelected, preserveSelectedRowKeys: true }}
+        scroll={{ x: 'max-content' }}
         pagination={{ pageSize: 8, showSizeChanger: false, size: 'small' }}
       />
     </div>

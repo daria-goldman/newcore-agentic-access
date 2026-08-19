@@ -48,12 +48,35 @@ function ownerFor(i) {
   return `${FIRST[i % FIRST.length]} ${LAST[(i * 7) % LAST.length]}`
 }
 
+// The demo estate is read on 19 Aug 2026, the same day the trend chart ends.
+const TODAY = Date.UTC(2026, 7, 19)
+const DAY = 86400000
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const fmt = (ts) => {
+  const d = new Date(ts)
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+}
+// Last used has to agree with the Usage column, otherwise two cells in the same row
+// would tell different stories.
+const AGO_BY_USAGE = { daily: [0, 1], weekly: [2, 7], monthly: [8, 34], 'idle 2 mo': [60, 75], 'idle 4 mo': [120, 140] }
+function lastUsedFor(usage, roll) {
+  const [from, to] = AGO_BY_USAGE[usage] || [1, 30]
+  return fmt(TODAY - (from + Math.floor(roll * (to - from))) * DAY)
+}
+function createdFor(usage, roll) {
+  return fmt(TODAY - (120 + Math.floor(roll * 900)) * DAY)
+}
+
 function buildAgents() {
   const rows = []
   DESIGNED.forEach((d, i) => {
+    const roll = rnd()
     rows.push({
       key: `a${i}`,
       name: d.name,
+      sponsor: i === 3 ? 'Dana Weiss' : i === 4 ? null : ['Tal Barak', 'Yael Golan', 'Omer Sharon', null, null][i % 5],
+      lastUsed: lastUsedFor(d.usage, roll),
+      created: createdFor(d.usage, rnd()),
       dept: d.dept,
       owner: d.owner ? d.owner.name : null,
       ownerNote: d.owner ? d.owner.note : d.ownerNote,
@@ -120,15 +143,22 @@ function buildAgents() {
     }
 
     const roll = rnd()
+    const sponsorRoll = rnd()
+    const usage = pick(USAGE)
     rows.push({
       key: `a${n}`,
       name,
       dept,
       owner,
+      // A sponsor is a second accountable human. Fewer than half of the estate has one,
+      // and that is the point: it is the fallback that is usually missing.
+      sponsor: sponsorRoll < (owner ? 0.45 : 0.3) ? ownerFor(n + 3) : null,
+      lastUsed: lastUsedFor(usage, rnd()),
+      created: createdFor(usage, rnd()),
       ownerNote,
       ownerGap,
       risk: roll < 0.1 ? 'High' : roll < 0.42 ? 'Medium' : 'Low',
-      usage: pick(USAGE),
+      usage,
       status: rnd() < 0.06 ? 'On review' : 'Active',
       app: pick(APPS),
       inScope: dept.kind !== 'suggested' && dept.value === 'Marketing',
@@ -256,7 +286,7 @@ export const FINDINGS = [
     id: 'f8',
     title: 'Request owner confirmation for 3 agents',
     where: 'Ownership',
-    basis: 'Their department was suggested from usage, not derived from a human, so the set cannot be trusted for them.',
+    basis: 'Their department was guessed from the people who call them, not derived from an owner, so the set cannot be trusted for them.',
     cost: 'Nothing changes until a person answers.',
     scope: 3,
     approval: true,
@@ -376,7 +406,7 @@ export const SCENARIOS = {
       ['Disputed', SET.disputed, 'owner is a contractor or sits in two departments'],
     ],
     blind:
-      '3 agents could not be placed. Nobody owns them, so their department is a guess from the apps they touch. They stay out of this change and become their own task.',
+      '3 agents could not be placed. Nobody owns them, so their department is only a guess from the people who call them. They stay out of this change and become their own task.',
     findings: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'],
     scope: 'marketing',
     blindNote: '3 agents were never checked. Nobody owns them, so they were left out of this change and now sit in their own task.',

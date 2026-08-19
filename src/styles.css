@@ -186,7 +186,7 @@ body {
 
 .msg { margin-bottom: 16px; }
 .msg-chips { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
-.msg-line { display: flex; gap: 8px; justify-content: flex-end; align-items: flex-end; }
+.msg-line { display: flex; gap: 8px; justify-content: flex-end; align-items: center; }
 .msg-bubble {
   background: #f5f5f5; border-radius: 12px; padding: 9px 12px; font-size: 13px;
   max-width: 260px; animation: rise 200ms ease-out;
