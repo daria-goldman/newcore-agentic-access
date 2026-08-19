@@ -469,11 +469,52 @@ export default function AccessPanel({
       const applied = chat.applied.filter((a) => a.state === 'applied')
       const waiting = chat.applied.filter((a) => a.state === 'waiting')
       const blocked = chat.applied.filter((a) => a.state === 'failed')
+
+      // Everything unfinished in one block, one line each, one action each. Two banners in a
+      // row asked the reader to work out which one they were still responsible for.
+      const tail = [
+        ...blocked.map((a) => ({
+          key: a.id,
+          tone: 'error',
+          title: a.title,
+          note: a.note,
+          action: { label: 'Ask the app owner to approve', onClick: onOpenEmail },
+        })),
+        ...waiting.map((a) => ({
+          key: a.id,
+          tone: 'wait',
+          title: a.title,
+          note: a.note,
+          action: { label: 'See what was sent', onClick: onOpenEmail },
+        })),
+      ]
+      if (scenario.blindFilter) {
+        tail.push(
+          waiting.length
+            ? {
+                key: 'blind',
+                tone: 'wait',
+                title: '3 agents stayed out of this change',
+                note: 'Nobody owns them, so nothing here could be applied to them. Their managers have been asked to name an owner.',
+                link: { label: 'Show them in the table', onClick: () => applyFilters(scenario.blindFilter) },
+              }
+            : {
+                key: 'blind',
+                tone: 'wait',
+                title: '3 agents stayed out of this change',
+                note: 'Nobody owns them, so nothing here could be applied to them and their department is only a guess.',
+                action: { label: 'Email their managers', onClick: onOpenEmail },
+                link: { label: 'Show them in the table', onClick: () => applyFilters(scenario.blindFilter) },
+              },
+        )
+      }
+
       const summary = [
         `${applied.length + waiting.length} applied`,
         waiting.length ? `${waiting.length} waiting on people` : null,
         blocked.length ? `${blocked.length} blocked` : null,
       ].filter(Boolean)
+
       return (
         <div className="step" style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 15, fontWeight: 600 }}>{summary.join(' · ')}</div>
@@ -486,59 +527,39 @@ export default function AccessPanel({
             ))}
           </div>
 
-          {/* Sending happened on its own. What is left is somebody else's answer, not the
-              admin's next task. */}
-          {waiting.length ? (
-            <>
-              <div style={{ fontSize: 13, fontWeight: 600, margin: '14px 0 6px' }}>Waiting on people</div>
-              {waiting.map((a) => (
-                <div key={a.id} className="pending">
+          {tail.length ? (
+            <div className="tail">
+              <div className="tail-head">Not done, and why</div>
+              {tail.map((row) => (
+                <div key={row.key} className="tail-row">
                   <div className="result-line">
-                    <ClockCircleFilled style={{ color: '#faad14' }} />
-                    <span>{a.title}</span>
+                    {row.tone === 'error' ? (
+                      <CloseCircleFilled style={{ color: '#cf1322' }} />
+                    ) : (
+                      <ClockCircleFilled style={{ color: '#faad14' }} />
+                    )}
+                    <span>{row.title}</span>
                   </div>
-                  {a.note ? <div className="pending-note">{a.note}</div> : null}
-                  <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
-                    See what was sent
-                  </Button>
+                  {row.note ? <div className="pending-note">{row.note}</div> : null}
+                  <div style={{ display: 'flex', gap: 14, marginLeft: 22 }}>
+                    {row.action ? (
+                      <Button type="link" size="small" style={{ padding: 0 }} onClick={row.action.onClick}>
+                        {row.action.label}
+                      </Button>
+                    ) : null}
+                    {row.link ? (
+                      <Button type="link" size="small" style={{ padding: 0 }} onClick={row.link.onClick}>
+                        {row.link.label}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
-            </>
+            </div>
           ) : null}
 
-          {blocked.length ? (
-            <>
-              <div style={{ fontSize: 13, fontWeight: 600, margin: '14px 0 6px' }}>Blocked, needs you</div>
-              {blocked.map((a) => (
-                <div key={a.id} className="pending">
-                  <div className="result-line">
-                    <CloseCircleFilled style={{ color: '#cf1322' }} />
-                    <span>{a.title}</span>
-                  </div>
-                  {a.note ? <div className="pending-note">{a.note}</div> : null}
-                  <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
-                    Ask the app owner to approve
-                  </Button>
-                </div>
-              ))}
-            </>
-          ) : null}
-
-          <div className="blind" style={{ marginTop: 14 }}>
-            <b>
-              {waiting.length
-                ? 'Three agents nobody owns are waiting for a person to name an owner.'
-                : scenario.blindNote}
-            </b>{' '}
-            Until someone answers, they stay outside every change made here. This screen does not call
-            the job done.
-            {scenario.blindFilter ? (
-              <div style={{ marginTop: 6 }}>
-                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => applyFilters(scenario.blindFilter)}>
-                  {scenario.blindFilterLabel}
-                </Button>
-              </div>
-            ) : null}
+          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 10 }}>
+            This screen does not call the job done.
           </div>
         </div>
       )
