@@ -158,7 +158,7 @@ export default function AccessPanel({
               title: f.title,
               state: f.email ? 'waiting' : f.id === 'f4' ? 'failed' : 'applied',
               note: f.email
-                ? 'Sent to the manager of the departed owner. Nothing changes for these agents until a person answers.'
+                ? 'Requests went out automatically the moment you applied this. A reminder follows in 3 days, and nothing changes for these agents until a person answers.'
                 : f.id === 'f4'
                   ? 'Google Drive returned a permission error: this folder is managed by its app owner, so removing access needs their approval.'
                   : null,
@@ -467,13 +467,16 @@ export default function AccessPanel({
 
     if (m.kind === 'result') {
       const applied = chat.applied.filter((a) => a.state === 'applied')
-      const pending = chat.applied.filter((a) => a.state !== 'applied')
-      const waiting = pending.filter((a) => a.state === 'waiting')
+      const waiting = chat.applied.filter((a) => a.state === 'waiting')
+      const blocked = chat.applied.filter((a) => a.state === 'failed')
+      const summary = [
+        `${applied.length + waiting.length} applied`,
+        waiting.length ? `${waiting.length} waiting on people` : null,
+        blocked.length ? `${blocked.length} blocked` : null,
+      ].filter(Boolean)
       return (
         <div className="step" style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>
-            {applied.length} of {chat.applied.length} changes applied
-          </div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>{summary.join(' · ')}</div>
           <div style={{ marginTop: 8 }}>
             {applied.map((a) => (
               <div key={a.id} className="result-line">
@@ -483,22 +486,38 @@ export default function AccessPanel({
             ))}
           </div>
 
-          {pending.length ? (
+          {/* Sending happened on its own. What is left is somebody else's answer, not the
+              admin's next task. */}
+          {waiting.length ? (
             <>
-              <div style={{ fontSize: 13, fontWeight: 600, margin: '14px 0 6px' }}>Needs a person</div>
-              {pending.map((a) => (
+              <div style={{ fontSize: 13, fontWeight: 600, margin: '14px 0 6px' }}>Waiting on people</div>
+              {waiting.map((a) => (
                 <div key={a.id} className="pending">
                   <div className="result-line">
-                    {a.state === 'waiting' ? (
-                      <ClockCircleFilled style={{ color: '#faad14' }} />
-                    ) : (
-                      <CloseCircleFilled style={{ color: '#cf1322' }} />
-                    )}
+                    <ClockCircleFilled style={{ color: '#faad14' }} />
                     <span>{a.title}</span>
                   </div>
                   {a.note ? <div className="pending-note">{a.note}</div> : null}
                   <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
-                    {a.state === 'waiting' ? 'See the request' : 'Ask the app owner to approve'}
+                    See what was sent
+                  </Button>
+                </div>
+              ))}
+            </>
+          ) : null}
+
+          {blocked.length ? (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 600, margin: '14px 0 6px' }}>Blocked, needs you</div>
+              {blocked.map((a) => (
+                <div key={a.id} className="pending">
+                  <div className="result-line">
+                    <CloseCircleFilled style={{ color: '#cf1322' }} />
+                    <span>{a.title}</span>
+                  </div>
+                  {a.note ? <div className="pending-note">{a.note}</div> : null}
+                  <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
+                    Ask the app owner to approve
                   </Button>
                 </div>
               ))}
