@@ -75,6 +75,7 @@ export const FILTER_MATCH = {
   usage: (r, v) => r.usage === v,
   status: (r, v) => r.status === v,
   sponsor: (r, v) => (v === 'No sponsor' ? !r.sponsor : !!r.sponsor),
+  guess: (r, v) => r.dept.kind === 'suggested' && r.dept.value === v,
   lastUsed: (r, v) =>
     v === 'Today'
       ? r.lastUsedTs >= TODAY_MS - DAY_MS
@@ -129,10 +130,12 @@ export function explain(filters, count) {
   const noOwner = (filters.owner || []).includes('No owner')
   const hasDept = (filters.dept || []).some((d) => d !== 'Not derived')
   if (noOwner && hasDept) {
+    const dept = (filters.dept || []).find((d) => d !== 'Not derived')
+    const guessed = countMatching({ owner: ['No owner'], guess: [dept] })
     return {
-      note: 'Nothing matches, and that is the point. A department is read from the human who owns the agent, so an agent with no owner cannot carry one. What exists instead is a guess from the people who call it.',
-      suggestion: { ...filters, dept: ['Not derived'] },
-      suggestionLabel: 'Show the unplaced ones instead',
+      note: `Nothing matches, and that is the point. A department is read from the human who owns the agent, so an agent with no owner cannot carry one. What exists instead is a guess from the people who call it, and ${guessed} of the unowned agents are called mostly by ${dept}.`,
+      suggestion: { owner: ['No owner'], guess: [dept] },
+      suggestionLabel: `Show the ${guessed} guessed as ${dept}`,
     }
   }
   return { note: 'Nothing matches this combination. Try removing one of the filters.', suggestion: null }

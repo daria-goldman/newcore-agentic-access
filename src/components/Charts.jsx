@@ -148,7 +148,7 @@ export function Trend({ points, tickIndexes }) {
           <line x1={x(hover)} x2={x(hover)} y1="0" y2={h} stroke="#d9d9d9" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         ) : null}
         {/* The axis the dates sit on, so the labels are not floating in the air. */}
-        <line x1="0" x2={w} y1={h} y2={h} stroke="#f0f0f0" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        <line x1="0" x2={w} y1={h} y2={h} stroke="#d9d9d9" strokeWidth="2" vectorEffect="non-scaling-stroke" />
       </svg>
 
       {hover !== null ? (
@@ -178,17 +178,45 @@ export function Trend({ points, tickIndexes }) {
         </>
       ) : null}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(0,0,0,0.45)', marginTop: 4 }}>
+      {/* Ticks under the axis, and each date centred on its own tick instead of spread evenly. */}
+      <div style={{ position: 'relative', height: 6 }}>
         {tickIndexes.map((i) => (
-          <span key={i}>{points[i].date}</span>
+          <span
+            key={i}
+            style={{
+              position: 'absolute',
+              left: `${(i / (points.length - 1)) * 100}%`,
+              width: 1,
+              height: 6,
+              background: '#bfbfbf',
+            }}
+          />
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'rgba(0,0,0,0.65)', marginTop: 2 }}>
+      <div style={{ position: 'relative', height: 16, marginTop: 2 }}>
+        {tickIndexes.map((i, k) => (
+          <span
+            key={i}
+            style={{
+              position: 'absolute',
+              left: `${(i / (points.length - 1)) * 100}%`,
+              transform:
+                k === 0 ? 'translateX(0)' : k === tickIndexes.length - 1 ? 'translateX(-100%)' : 'translateX(-50%)',
+              fontSize: 11,
+              color: 'rgba(0,0,0,0.45)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {points[i].date}
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 18, fontSize: 12, color: 'rgba(0,0,0,0.88)', marginTop: 8 }}>
         <span className="legend-row">
-          <i style={{ width: 14, height: 2, background: '#1677ff' }} /> Open
+          <i style={{ width: 16, height: 3, borderRadius: 2, background: '#1677ff' }} /> Open
         </span>
         <span className="legend-row">
-          <i style={{ width: 14, height: 2, background: '#91caff' }} /> Resolved
+          <i style={{ width: 16, height: 3, borderRadius: 2, background: '#91caff' }} /> Resolved
         </span>
       </div>
     </div>

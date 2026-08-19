@@ -37,6 +37,10 @@ const FILTER_DEFS = {
   usage: { label: 'Usage', options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'] },
   status: { label: 'Status', options: ['Active', 'On review'] },
   sponsor: { label: 'Sponsor', options: ['Has a sponsor', 'No sponsor'] },
+  guess: {
+    label: 'Suggested department',
+    options: ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People'],
+  },
   lastUsed: { label: 'Last used', options: ['Today', 'This week', 'This month', 'Older than 3 months'] },
   created: { label: 'Date created', options: ['Last 30 days', 'This year', 'Older than a year'] },
 }
@@ -165,6 +169,9 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     })
     return out
   }, [rows, query, filters])
+
+  const selectedSet = useMemo(() => new Set(selected), [selected])
+  const allOnPageless = visible.length > 0 && visible.every((r) => selectedSet.has(r.key))
 
   const activeChips = Object.entries(filters).flatMap(([key, values]) =>
     (values || []).map((v) => ({ key, value: v, label: `${FILTER_DEFS[key].label}: ${v}` })),
@@ -316,7 +323,20 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
           })
           setFilters(next)
         }}
-        rowSelection={{ selectedRowKeys: selected, onChange: onSelected, preserveSelectedRowKeys: true }}
+        rowSelection={{
+          selectedRowKeys: selected,
+          onChange: onSelected,
+          preserveSelectedRowKeys: true,
+          // The header box means every row the current filters return, not the page you happen
+          // to be looking at, and choices made on other pages are kept.
+          columnTitle: (
+            <Checkbox
+              checked={allOnPageless}
+              indeterminate={selected.length > 0 && !allOnPageless}
+              onChange={(e) => onSelected(e.target.checked ? visible.map((r) => r.key) : [])}
+            />
+          ),
+        }}
         scroll={{ x: 'max-content' }}
         pagination={{ pageSize: 8, showSizeChanger: false, size: 'small' }}
       />
