@@ -13,31 +13,95 @@ function arcPath(cx, cy, rOuter, rInner, a0, a1) {
 }
 
 export function Donut({ data, size = 96, thickness = 14, gap = 0.03 }) {
+  const [hover, setHover] = useState(null)
+  const [pos, setPos] = useState({ x: 0, y: 0, w: 0 })
   const total = data.reduce((s, d) => s + d.share, 0)
   const rOuter = size / 2
   const rInner = size / 2 - thickness
   let angle = -Math.PI / 2
+  const slices = data.map((d) => {
+    const sweep = (d.share / total) * Math.PI * 2
+    const path = arcPath(rOuter, rOuter, rOuter, rInner, angle + gap / 2, angle + sweep - gap / 2)
+    angle += sweep
+    return { ...d, path }
+  })
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Violations by type">
-      {data.map((d) => {
-        const sweep = (d.share / total) * Math.PI * 2
-        const a0 = angle + gap / 2
-        const a1 = angle + sweep - gap / 2
-        angle += sweep
-        return <path key={d.label} d={arcPath(rOuter, rOuter, rOuter, rInner, a0, a1)} fill={d.color} />
-      })}
-    </svg>
+    <div
+      style={{ position: 'relative', lineHeight: 0 }}
+      onMouseMove={(e) => {
+        const box = e.currentTarget.getBoundingClientRect()
+        setPos({ x: e.clientX - box.left, y: e.clientY - box.top, w: box.width })
+      }}
+      onMouseLeave={() => setHover(null)}
+    >
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Violations by type">
+        {slices.map((d, i) => (
+          <path
+            key={d.label}
+            d={d.path}
+            fill={d.color}
+            opacity={hover === null || hover === i ? 1 : 0.35}
+            style={{ transition: 'opacity 120ms ease' }}
+            onMouseEnter={() => setHover(i)}
+          />
+        ))}
+      </svg>
+      {hover !== null ? (
+        <div
+          className="chart-tip"
+          style={{
+            left: pos.x + (pos.x > pos.w - 150 ? -10 : 10),
+            top: pos.y - 8,
+            transform: pos.x > pos.w - 150 ? 'translateX(-100%)' : 'none',
+          }}
+        >
+          <b>{data[hover].share}%</b> {data[hover].label}
+        </div>
+      ) : null}
+    </div>
   )
 }
 
 export function SeverityBar({ data }) {
+  const [hover, setHover] = useState(null)
+  const [pos, setPos] = useState({ x: 0, y: 0, w: 0 })
   const total = data.reduce((s, d) => s + d.count, 0)
   // Same weight as the donut ring, so the two cards read as one system.
   return (
-    <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', width: '100%' }}>
-      {data.map((d) => (
-        <div key={d.label} style={{ width: `${(d.count / total) * 100}%`, background: d.color }} />
-      ))}
+    <div
+      style={{ position: 'relative' }}
+      onMouseMove={(e) => {
+        const box = e.currentTarget.getBoundingClientRect()
+        setPos({ x: e.clientX - box.left, y: e.clientY - box.top, w: box.width })
+      }}
+      onMouseLeave={() => setHover(null)}
+    >
+      <div style={{ display: 'flex', height: 14, borderRadius: 7, overflow: 'hidden', width: '100%' }}>
+        {data.map((d, i) => (
+          <div
+            key={d.label}
+            onMouseEnter={() => setHover(i)}
+            style={{
+              width: `${(d.count / total) * 100}%`,
+              background: d.color,
+              opacity: hover === null || hover === i ? 1 : 0.35,
+              transition: 'opacity 120ms ease',
+            }}
+          />
+        ))}
+      </div>
+      {hover !== null ? (
+        <div
+          className="chart-tip"
+          style={{
+            left: pos.x + (pos.x > pos.w - 170 ? -10 : 10),
+            top: pos.y - 8,
+            transform: pos.x > pos.w - 170 ? 'translateX(-100%)' : 'none',
+          }}
+        >
+          <b>{data[hover].count}</b> {data[hover].label.toLowerCase()} · {Math.round((data[hover].count / total) * 100)}% of {total}
+        </div>
+      ) : null}
     </div>
   )
 }

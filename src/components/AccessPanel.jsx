@@ -1,22 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Button, Input, Progress, Switch, Tag, Tooltip } from 'antd'
-import {
-  CheckCircleFilled,
-  ClockCircleFilled,
-  CloseCircleFilled,
-  KeyOutlined,
-  MessageOutlined,
-  SafetyCertificateOutlined,
-  ThunderboltOutlined,
-  UserOutlined,
-} from '@ant-design/icons'
-import { BackIcon, HistoryIcon, PanelClose, PanelOpen, PlusIcon } from '../icons.jsx'
+import { CheckCircleFilled, ClockCircleFilled, CloseCircleFilled, MessageOutlined } from '@ant-design/icons'
+import { AccountIcon, BackIcon, HistoryIcon, PanelClose, PanelOpen, PlusIcon, RouteIcon, ShieldCheckIcon, WandIcon } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { OPEN_FINDINGS, SCENARIOS, SUGGESTIONS, UNOWNED_TOTAL, WIDGET_TO_SCENARIO } from '../data.js'
 import { answerFor } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
-const SUGGESTION_ICON = { harden: <SafetyCertificateOutlined />, owners: <UserOutlined />, path: <KeyOutlined /> }
+const SUGGESTION_ICON = { harden: <ShieldCheckIcon />, owners: <AccountIcon />, path: <RouteIcon /> }
 
 function timeLabel(ts) {
   const min = Math.floor((Date.now() - ts) / 60000)
@@ -278,7 +269,7 @@ export default function AccessPanel({
     if (m.kind === 'thinking')
       return (
         <div className="thinking pulsing">
-          <ThunderboltOutlined /> Planning next steps
+          <WandIcon width="16" height="16" /> Planning next steps
         </div>
       )
 
@@ -510,7 +501,7 @@ export default function AccessPanel({
         {view === 'new' && (
           <div className="step">
             <div className="start-mark">
-              <ThunderboltOutlined />
+              <WandIcon width="22" height="22" />
             </div>
             <div className="start-title">Where should we start?</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
