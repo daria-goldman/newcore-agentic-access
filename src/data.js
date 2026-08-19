@@ -80,6 +80,9 @@ function buildAgents() {
       key: `a${i}`,
       name: d.name,
       sponsor: i === 3 ? 'Dana Weiss' : i === 4 ? null : ['Tal Barak', 'Yael Golan', 'Omer Sharon', null, null][i % 5],
+      // The manager of the person who owned this agent. Where nobody owns it, this is the
+      // closest human the request can reach.
+      manager: ['Dana Weiss', 'Eitan Regev', 'Hila Mizrahi', 'Dana Weiss', 'Guy Peretz'][i % 5],
       lastUsedTs: lastUsedFor(d.usage, roll),
       createdTs: createdFor(rnd()),
       dept: d.dept,
@@ -153,6 +156,7 @@ function buildAgents() {
       // A sponsor is a second accountable human. Fewer than half of the estate has one,
       // and that is the point: it is the fallback that is usually missing.
       sponsor: sponsorRoll < (owner ? 0.45 : 0.3) ? ownerFor(n + 3) : null,
+      manager: ownerFor(Math.floor(n / 4) + 11),
       lastUsedTs: lastUsedFor(usage, rnd()),
       createdTs: createdFor(rnd()),
       ownerNote,

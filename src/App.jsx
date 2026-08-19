@@ -5,7 +5,7 @@ import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
-import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS, applyFixes, computeStats } from './data.js'
+import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS, affectedAgents, applyFixes, computeStats } from './data.js'
 import { countMatching, explain, parseQuery } from './query.js'
 
 // A set the assistant derives can be pushed to the table, but only when the admin asks for it.
@@ -29,6 +29,7 @@ export default function App() {
   const [widget, setWidget] = useState(null)
   const [tableAttached, setTableAttached] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
+  const [emailAgents, setEmailAgents] = useState([])
   const [msg, holder] = message.useMessage()
 
   const chat = chats.find((c) => c.id === activeId) || null
@@ -112,6 +113,7 @@ export default function App() {
 
   const onBulk = (key, keys) => {
     if (key === 'confirm' || key === 'message') {
+      setEmailAgents(agents.filter((a) => keys.includes(a.key)))
       setEmailOpen(true)
       return
     }
@@ -184,10 +186,13 @@ export default function App() {
         attachedAgents={attachedAgents}
         onDetachWidget={() => setWidget(null)}
         onDetachAgents={() => setSelected([])}
-        onOpenEmail={() => setEmailOpen(true)}
+        onOpenEmail={(findingId) => {
+          setEmailAgents(findingId ? affectedAgents(agents, findingId) : [])
+          setEmailOpen(true)
+        }}
       />
 
-      <OwnerRequestModal open={emailOpen} onClose={() => setEmailOpen(false)} />
+      <OwnerRequestModal open={emailOpen} onClose={() => setEmailOpen(false)} agents={emailAgents} />
     </div>
   )
 }

@@ -408,7 +408,7 @@ export default function AccessPanel({
                       {impact === f.id ? 'Hide who this touches' : 'See who this touches'}
                     </Button>
                     {f.email ? (
-                      <Button type="link" size="small" style={{ padding: 0 }} onClick={onOpenEmail}>
+                      <Button type="link" size="small" style={{ padding: 0 }} onClick={() => onOpenEmail(f.id)}>
                         See the request
                       </Button>
                     ) : null}
@@ -478,14 +478,14 @@ export default function AccessPanel({
           tone: 'error',
           title: a.title,
           note: a.note,
-          action: { label: 'Ask the app owner to approve', onClick: onOpenEmail },
+          action: { label: 'Ask the app owner to approve', onClick: () => onOpenEmail(a.id) },
         })),
         ...waiting.map((a) => ({
           key: a.id,
           tone: 'wait',
           title: a.title,
           note: a.note,
-          action: { label: 'See what was sent', onClick: onOpenEmail },
+          action: { label: 'See what was sent', onClick: () => onOpenEmail(a.id) },
         })),
       ]
       if (scenario.blindFilter) {
@@ -503,7 +503,7 @@ export default function AccessPanel({
                 tone: 'wait',
                 title: '3 agents stayed out of this change',
                 note: 'Nobody owns them, so nothing here could be applied to them and their department is only a guess.',
-                action: { label: 'Email their managers', onClick: onOpenEmail },
+                action: { label: 'Email their managers', onClick: () => onOpenEmail('f8') },
                 link: { label: 'Show them in the table', onClick: () => applyFilters(scenario.blindFilter) },
               },
         )
