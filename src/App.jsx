@@ -30,14 +30,19 @@ export default function App() {
 
   // Every run is its own chat, so the admin can leave one in the middle, look at the screen
   // and come back to it. Nothing that was started disappears.
-  const startChat = (scenarioKey) => {
+  const startChat = (scenarioKey, request) => {
     const scenario = SCENARIOS[scenarioKey]
     const id = `c${++chatSeq}`
     setChats((prev) => [
       {
         id,
         scenarioKey,
-        step: 'reading',
+        step: 'thinking',
+        pending: 'reading',
+        messages: [
+          { role: 'user', text: request?.text || scenario.title, chips: request?.chips || [] },
+          { role: 'assistant', kind: 'thinking' },
+        ],
         findings: scenario.findings.map((fid) => ({ ...ALL_FINDINGS.find((f) => f.id === fid) })),
         applied: [],
         createdAt: Date.now(),
@@ -100,7 +105,11 @@ export default function App() {
         <div className="page">
           <h1 className="page-title">Risk Manager</h1>
           <div className="section-label">Risks</div>
-          <RiskWidgets onFix={startChat} selected={widget} onToggle={toggleWidget} />
+          <RiskWidgets
+            onFix={(key) => startChat(key, { text: SCENARIOS[key].title, chips: [] })}
+            selected={widget}
+            onToggle={toggleWidget}
+          />
           <div className="section-gap" />
           <div className="section-label">Agents</div>
           <AgentsTable

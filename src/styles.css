@@ -174,3 +174,21 @@ body {
 .composer textarea:focus-visible,
 .composer .ant-input:focus,
 .composer .ant-input:focus-visible { outline: none !important; }
+
+.panel-body.start { display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 8px; }
+.start-mark {
+  width: 40px; height: 40px; border-radius: 50%; background: #e6f4ff; color: #1677ff;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 18px;
+}
+.start-title { text-align: center; font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+.suggestion-row { display: flex; gap: 10px; align-items: flex-start; }
+.suggestion-icon { color: rgba(0, 0, 0, 0.45); margin-top: 2px; display: flex; }
+
+.msg { margin-bottom: 16px; }
+.msg-chips { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.msg-line { display: flex; gap: 8px; justify-content: flex-end; align-items: flex-end; }
+.msg-bubble {
+  background: #f5f5f5; border-radius: 12px; padding: 9px 12px; font-size: 13px;
+  max-width: 260px; animation: rise 200ms ease-out;
+}
+.thinking { display: flex; gap: 8px; align-items: center; color: rgba(0, 0, 0, 0.45); font-size: 13px; padding: 2px 0; }

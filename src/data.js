@@ -178,7 +178,6 @@ export const SUGGESTIONS = [
   { id: 'harden', title: 'Harden access for marketing agents', sub: '34 agents, 8 findings across 4 apps and 2 policies' },
   { id: 'owners', title: 'Find an owner for 11 agents', sub: '6 owners left the company, 3 have no HR record' },
   { id: 'path', title: 'Remove the weak path from MKT-01', sub: 'password + OTP is the only path an agent can take' },
-  { id: 'admin', title: 'Revoke admin-level access from 4 agents', sub: 'none of them used it in the last 90 days' },
 ]
 
 // The eight findings behind the first suggestion. Every one carries its basis and its price.
