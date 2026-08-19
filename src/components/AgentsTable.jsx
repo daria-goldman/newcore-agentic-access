@@ -74,23 +74,34 @@ function actionItems(count) {
   return out
 }
 
+// Four states, and the difference between them is where the value came from:
+// the owner's own record, their manager, an unsettled owner, or nobody at all.
 function Department({ dept }) {
   if (dept.kind === 'suggested') {
     return (
-      <Tooltip title="No owner, so the department could not be derived. This is a guess from the people who call this agent.">
-        <span className="dept-soft">
-          Suggested: {dept.value} · {dept.confidence}%
+      <Tooltip
+        title={`This agent has no owner, so its department cannot be derived from a human record. The value is inferred from the people who invoked the agent in the last 90 days: ${dept.confidence}% of them sit in ${dept.value}.`}
+      >
+        <span className="dept-guess">
+          {dept.value}
+          <Tag style={{ marginInlineEnd: 0 }}>{dept.confidence}% users</Tag>
         </span>
       </Tooltip>
     )
   }
-  if (dept.kind === 'confirmed') return <span>{dept.value}</span>
+  if (dept.kind === 'confirmed') {
+    return (
+      <Tooltip title="Read from the department on the record of the human who owns this agent.">
+        <span>{dept.value}</span>
+      </Tooltip>
+    )
+  }
   return (
     <Tooltip
       title={
         dept.kind === 'inferred'
-          ? "Taken from the owner's department, not from a field on the agent."
-          : 'The owner belongs to two departments, so this one is not settled.'
+          ? "The owner carries no department of their own, so the value is taken from their manager's record."
+          : 'The owner belongs to two departments, so the value is not settled until a person confirms it.'
       }
     >
       <span>

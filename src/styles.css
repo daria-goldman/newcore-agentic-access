@@ -244,3 +244,5 @@ body {
 /* Icon only controls sit in the same grey as the panel icons and light up on hover. */
 .btn-muted { color: #6b7c8c; }
 .btn-muted:hover { color: #1677ff; }
+
+.dept-guess { display: inline-flex; align-items: center; gap: 8px; }
