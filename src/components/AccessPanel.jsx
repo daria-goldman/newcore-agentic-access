@@ -4,16 +4,13 @@ import {
   CheckCircleFilled,
   ClockCircleFilled,
   CloseCircleFilled,
-  HistoryOutlined,
   KeyOutlined,
-  LeftOutlined,
   MessageOutlined,
-  PlusOutlined,
   SafetyCertificateOutlined,
   ThunderboltOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { PanelClose, PanelOpen } from '../icons.jsx'
+import { BackIcon, HistoryIcon, PanelClose, PanelOpen, PlusIcon } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { OPEN_FINDINGS, SCENARIOS, SUGGESTIONS, UNOWNED_TOTAL, WIDGET_TO_SCENARIO } from '../data.js'
 
@@ -187,7 +184,8 @@ export default function AccessPanel({
   }
 
   const canSend = attachedWidgets.length > 0 || attachedAgents.length > 0 || draft.trim().length > 0
-  const title = view === 'list' ? 'Chats' : view === 'chat' && scenario ? scenario.title : 'Access AI'
+  const title =
+    view === 'list' ? 'Chats' : view === 'chat' && scenario ? scenario.title : chats.length ? 'New chat' : 'Access AI'
 
   const renderAssistant = (m, isLast) => {
     if (m.kind === 'thinking')
@@ -359,26 +357,30 @@ export default function AccessPanel({
             <PanelClose />
           </button>
         </Tooltip>
-        {view === 'chat' ? (
+        {/* A new chat lives inside the list of chats, so it only offers a way back once
+            there is a list to go back to. */}
+        {view === 'chat' || (view === 'new' && chats.length > 0) ? (
           <Tooltip title="Back to chats" placement="bottom">
             <button className="icon-btn" onClick={() => setView('list')} aria-label="Back to chats">
-              <LeftOutlined />
+              <BackIcon />
             </button>
           </Tooltip>
         ) : null}
         <span className="panel-title">{title}</span>
-        {view !== 'list' ? (
+        {view === 'chat' && chats.length > 1 ? (
           <Tooltip title="Chats" placement="bottom">
             <button className="icon-btn" onClick={() => setView('list')} aria-label="Chats">
-              <HistoryOutlined />
+              <HistoryIcon />
             </button>
           </Tooltip>
         ) : null}
-        <Tooltip title="New chat" placement="bottom">
-          <button className="icon-btn" onClick={() => setView('new')} aria-label="New chat">
-            <PlusOutlined />
-          </button>
-        </Tooltip>
+        {view !== 'new' ? (
+          <Tooltip title="New chat" placement="bottom">
+            <button className="icon-btn" onClick={() => setView('new')} aria-label="New chat">
+              <PlusIcon />
+            </button>
+          </Tooltip>
+        ) : null}
       </div>
 
       <div className={`panel-body${view === 'new' ? ' start' : ''}`}>

@@ -5,7 +5,7 @@ import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
-import { AGENTS, ALL_FINDINGS, BULK_ACTIONS, SCENARIOS } from './data.js'
+import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS } from './data.js'
 
 // A set the assistant derives is expressed as ordinary table filters, so the admin sees the
 // same chips they would have set by hand and can take any of them off.
@@ -77,11 +77,11 @@ export default function App() {
   }
 
   const onBulk = (key, keys) => {
-    if (key === 'owner') {
+    if (key === 'confirm' || key === 'message') {
       setEmailOpen(true)
       return
     }
-    const label = BULK_ACTIONS.find((a) => a.key === key)?.label
+    const label = ACTION_LABELS[key]
     msg.success(`${label} · ${keys.length} agent${keys.length > 1 ? 's' : ''} · you can undo this for 10 minutes`)
   }
 

@@ -265,14 +265,42 @@ export const FINDINGS = [
   },
 ]
 
-export const BULK_ACTIONS = [
-  { key: 'ask', label: 'Move write tools to ask' },
-  { key: 'revoke', label: 'Revoke admin-level access' },
-  { key: 'sessions', label: 'Revoke active sessions and tokens' },
-  { key: 'owner', label: 'Request owner confirmation' },
-  { key: 'suspend', label: 'Suspend' },
-  { key: 'decommission', label: 'Decommission', danger: true },
+// The action set worked out against the competitor recordings and screenshots, grouped the way
+// the wireframe fixed it. Nothing here is a guess: every item appeared in at least one product,
+// except "Move write tools to ask", which comes from the ask fallback in the brief.
+export const ACTION_GROUPS = [
+  {
+    title: 'Ownership',
+    items: [
+      { key: 'assign', label: 'Assign an owner' },
+      { key: 'confirm', label: 'Request owner confirmation' },
+      { key: 'message', label: 'Send email or Slack message' },
+    ],
+  },
+  {
+    title: 'Access',
+    items: [
+      { key: 'sessions', label: 'Revoke active sessions and tokens' },
+      { key: 'ask', label: 'Move write tools to ask' },
+      { key: 'policy', label: 'Apply a policy' },
+    ],
+  },
+  {
+    title: 'Lifecycle',
+    items: [
+      { key: 'suspend', label: 'Suspend agents', one: 'Suspend agent' },
+      { key: 'decommission', label: 'Decommission agents', one: 'Decommission agent', danger: true },
+    ],
+  },
+  {
+    title: 'Evidence',
+    items: [{ key: 'export', label: 'Export selection' }],
+  },
 ]
+
+export const ACTION_LABELS = Object.fromEntries(
+  ACTION_GROUPS.flatMap((g) => g.items.map((i) => [i.key, i.label])),
+)
 
 // Findings that belong to the smaller widget scenarios.
 export const EXTRA_FINDINGS = [

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
-import { BULK_ACTIONS } from '../data.js'
+import { ACTION_GROUPS } from '../data.js'
 
 const riskColor = { High: 'red', Medium: 'gold', Low: 'default' }
 
@@ -39,6 +39,31 @@ const FILTER_DEFS = {
     match: (r, v) => r.usage === v,
   },
   status: { label: 'Status', options: ['Active', 'On review'], match: (r, v) => r.status === v },
+}
+
+// One menu definition, used both for a single row and for a selection, with the labels
+// following the count.
+function actionItems(count) {
+  const out = []
+  ACTION_GROUPS.forEach((group, gi) => {
+    if (gi > 0) out.push({ type: 'divider' })
+    out.push({
+      type: 'group',
+      label: group.title,
+      children: group.items.map((i) => ({
+        key: i.key,
+        label: count === 1 && i.one ? i.one : i.label,
+        danger: i.danger,
+      })),
+    })
+  })
+  out.push({ type: 'divider' })
+  out.push({
+    key: 'scope',
+    disabled: true,
+    label: <span style={{ fontSize: 12 }}>applies to {count} selected {count === 1 ? 'agent' : 'agents'}</span>,
+  })
+  return out
 }
 
 function Department({ dept }) {
@@ -196,12 +221,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')
       base.render = (_, r) => (
-        <Dropdown
-          menu={{
-            items: BULK_ACTIONS.map((a) => ({ key: a.key, label: a.label, danger: a.danger })),
-            onClick: ({ key: k }) => onBulk(k, [r.key]),
-          }}
-        >
+        <Dropdown menu={{ items: actionItems(1), onClick: ({ key: k }) => onBulk(k, [r.key]) }}>
           <Button type="link" size="small" style={{ padding: 0 }}>
             Actions <DownOutlined style={{ fontSize: 10 }} />
           </Button>
@@ -263,12 +283,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         <div className="bulkbar">
           <b>{selected.length} agents selected</b>
           <span className="toolbar-grow" />
-          <Dropdown
-            menu={{
-              items: BULK_ACTIONS.map((a) => ({ key: a.key, label: a.label, danger: a.danger })),
-              onClick: ({ key }) => onBulk(key, selected),
-            }}
-          >
+          <Dropdown menu={{ items: actionItems(selected.length), onClick: ({ key }) => onBulk(key, selected) }}>
             <Button size="small">
               Edit in bulk <DownOutlined style={{ fontSize: 10 }} />
             </Button>
