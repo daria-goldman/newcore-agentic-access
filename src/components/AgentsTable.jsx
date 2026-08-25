@@ -19,14 +19,23 @@ const COLUMN_DEFS = {
   risk: { title: 'Risk', width: 90, filter: 'risk' },
   usage: { title: 'Usage', width: 95, filter: 'usage' },
   status: { title: 'Status', width: 105, filter: 'status' },
-  // Off by default: useful, but not what the admin scans for first.
-  sponsor: { title: 'Sponsor', width: 170, filter: 'sponsor', optional: true },
+  // Off by default: useful, but not what the admin scans for first. The five owner columns are
+  // the rest of the Human record from the brief, flattened onto the agent row, so a question about
+  // the person behind an agent can be answered without leaving the table.
+  manager: { title: 'Manager', width: 165, optional: true },
+  ownerTitle: { title: 'Owner title', width: 195, optional: true },
+  ownerEmail: { title: 'Owner email', width: 225, optional: true },
+  ownerType: { title: 'Owner type', width: 130, filter: 'ownerType', optional: true },
+  ownerStatus: { title: 'Owner status', width: 145, filter: 'ownerStatus', optional: true },
   lastUsed: { title: 'Last used', width: 140, filter: 'lastUsed', optional: true },
   created: { title: 'Date created', width: 140, filter: 'created', optional: true },
   action: { title: 'Actions', width: 80, pinned: 'last' },
 }
-const DEFAULT_ORDER = ['name', 'dept', 'owner', 'risk', 'usage', 'status', 'sponsor', 'lastUsed', 'created', 'action']
-const DEFAULT_HIDDEN = ['sponsor', 'lastUsed', 'created']
+const DEFAULT_ORDER = [
+  'name', 'dept', 'owner', 'risk', 'usage', 'status',
+  'manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'lastUsed', 'created', 'action',
+]
+const DEFAULT_HIDDEN = ['manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'lastUsed', 'created']
 
 const FILTER_DEFS = {
   dept: {
@@ -37,7 +46,8 @@ const FILTER_DEFS = {
   risk: { label: 'Risk', options: ['High', 'Medium', 'Low'] },
   usage: { label: 'Usage', options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'] },
   status: { label: 'Status', options: ['Active', 'On review'] },
-  sponsor: { label: 'Sponsor', options: ['Has a sponsor', 'No sponsor'] },
+  ownerType: { label: 'Owner type', options: ['Employee', 'Contractor', 'Consultant', 'Not known'] },
+  ownerStatus: { label: 'Owner status', options: ['Active', 'Suspended', 'Deactivated', 'No HR record', 'Not known'] },
   guess: {
     label: 'Suggested department',
     options: ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People'],
@@ -257,8 +267,13 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         )
       }
     if (key === 'lastUsed' || key === 'created') base.render = (v) => <span style={{ whiteSpace: 'nowrap' }}>{v}</span>
-    if (key === 'sponsor')
-      base.render = (v) => (v ? <span>{v}</span> : <span className="dept-soft">no sponsor</span>)
+    // The owner's own record. Where nobody is accountable there is nothing to read, and the cell
+    // says N/A rather than sitting empty and looking like a loading bug.
+    if (key === 'manager' || key === 'ownerTitle' || key === 'ownerEmail' || key === 'ownerType')
+      base.render = (v) => (v ? <span>{v}</span> : <span className="dept-soft">N/A</span>)
+    if (key === 'ownerStatus')
+      base.render = (v) =>
+        v === 'Active' ? <Tag color="default">Active</Tag> : <Tag color={v === 'Not known' ? 'default' : 'gold'}>{v}</Tag>
     if (key === 'risk') base.render = (v) => <Tag color={riskColor[v]}>{v}</Tag>
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')

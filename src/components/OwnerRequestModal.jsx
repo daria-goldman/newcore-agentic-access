@@ -8,14 +8,30 @@ const usageLine = (usage) => {
   return `is used ${usage}`
 }
 
+// The closest human this request can reach. Where somebody owns the agent it is the owner, and
+// only where nobody does does it fall to the owner's manager. Both names are on the row itself,
+// in the Owner and Manager columns, so the recipient here can never disagree with the table.
+const recipientFor = (a) => (a ? a.owner || a.manager : null)
+const recipientRole = (a) =>
+  a && a.owner ? 'owner of this agent' : a && a.ownerGap === 'left' ? 'manager of the departed owner' : 'manager on record for this agent'
+// Why the request is being sent, read from the agent rather than written into the template, so
+// the sentence matches the Owner status column instead of contradicting it.
+const openingLine = (a) => {
+  if (!a || a.owner) return 'is running under your name'
+  if (a.ownerGap === 'left') return 'has been running without an accountable owner since its owner left on 12 April'
+  if (a.ownerGap === 'noHr') return 'is owned by somebody with no record in HR, so nobody can be held accountable for it'
+  return 'was created without an owner and has never been claimed'
+}
+
 // One request or forty eight. The difference is not cosmetic: in bulk there is no single
-// recipient to choose, because every agent points at a different manager.
+// recipient to choose, because every agent points at a different person.
 export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }) {
   const [showAll, setShowAll] = useState(false)
   const bulk = agents.length > 1
-  const managers = [...new Set(agents.map((a) => a.manager).filter(Boolean))]
+  const managers = [...new Set(agents.map(recipientFor).filter(Boolean))]
   const shown = showAll ? managers : managers.slice(0, 5)
   const sample = agents[0]
+  const allUnowned = agents.every((a) => !a.owner)
 
   return (
     <Modal
@@ -33,7 +49,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Send to</div>
             <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>
-                The manager of each departed owner, {managers.length} people
+                {allUnowned ? 'The manager on record for each agent' : 'The owner, or the manager where nobody owns the agent'}, {managers.length} people
               </div>
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '2px 0 8px' }}>
                 One message per agent, {agents.length} in total, each filled in with that agent's own
@@ -60,8 +76,8 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }
               {/* One agent has one closest human. Offering a choice here invented a decision
                   the admin does not have to make. */}
               <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>{sample?.manager || 'Dana Weiss'}</span>
-                <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}> · manager of the departed owner</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>{recipientFor(sample) || 'Dana Weiss'}</span>
+                <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}> · {recipientRole(sample)}</span>
               </div>
             </div>
             <div>
@@ -90,13 +106,15 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }
           </div>
           <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: 12 }}>
             <p style={{ margin: '0 0 8px' }}>
-              <b>{sample?.name || 'content-bot'}</b> has been running without an accountable owner since 12
-              April. It reaches {sample?.app || 'Salesforce'} and {usageLine(sample?.usage)}.
+              <b>{sample?.name || 'content-bot'}</b> {openingLine(sample)}. It reaches{' '}
+              {sample?.app || 'Salesforce'} and {usageLine(sample?.usage)}.
             </p>
-            <p style={{ margin: '0 0 10px' }}>Please assign an owner for this agent.</p>
+            <p style={{ margin: '0 0 10px' }}>
+              {sample?.owner ? 'Please confirm you still own this agent.' : 'Please assign an owner for this agent.'}
+            </p>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-              <span className="mail-cta">Assign an owner</span>
-              <a style={{ fontSize: 12 }}>I cannot assign an owner</a>
+              <span className="mail-cta">{sample?.owner ? 'Confirm ownership' : 'Assign an owner'}</span>
+              <a style={{ fontSize: 12 }}>{sample?.owner ? 'This is not my agent' : 'I cannot assign an owner'}</a>
             </div>
           </div>
         </div>

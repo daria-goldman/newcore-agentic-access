@@ -298,7 +298,7 @@ export default function AccessPanel({
         return (
           <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
             I could not turn that into a filter. Name a department, a risk level, a status, or say something like
-            <b> no owner</b>, <b>idle</b> or <b>no sponsor</b>.
+            <b> no owner</b>, <b>idle</b> or <b>owned by a contractor</b>.
           </div>
         )
       return (

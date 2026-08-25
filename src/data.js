@@ -50,6 +50,53 @@ function ownerFor(i) {
   return `${FIRST[i % FIRST.length]} ${LAST[(i * 7) % LAST.length]}`
 }
 
+// Everything the brief holds about a Human: name, email, title, department, manager, type, status.
+// Department already lives on the agent row because the whole case turns on deriving it, the rest
+// is built here. Profiles are memoised by name so one person never appears with two job titles
+// or two managers on different rows.
+const TITLES = {
+  Marketing: ['Campaign Manager', 'Content Strategist', 'Growth Lead', 'Product Marketing Manager', 'Marketing Operations Manager'],
+  Sales: ['Account Executive', 'Sales Manager', 'Sales Operations Analyst'],
+  Finance: ['Financial Analyst', 'Controller', 'Accounts Payable Specialist'],
+  Engineering: ['Software Engineer', 'Engineering Manager', 'Platform Engineer'],
+  Support: ['Support Engineer', 'Support Team Lead', 'Customer Success Manager'],
+  Operations: ['Operations Manager', 'Business Operations Analyst', 'Procurement Specialist'],
+  Legal: ['Legal Counsel', 'Compliance Manager', 'Contracts Manager'],
+  People: ['HR Business Partner', 'Recruiter', 'People Operations Manager'],
+}
+// A stand in company, so the estate on screen is plainly demo data and not a real domain.
+const EMAIL_DOMAIN = 'northwind.com'
+function hashName(s) {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+const HUMANS = new Map()
+function humanProfile(name, dept) {
+  if (!name) return null
+  const seen = HUMANS.get(name)
+  if (seen) return seen
+  const h = hashName(name)
+  const titles = TITLES[dept] || TITLES.Operations
+  // Most people are ordinary employees on an active record. Contractors and consultants are the
+  // minority that makes Type worth a column at all, and a suspended record is rarer still.
+  const typeRoll = h % 10
+  let manager = ownerFor(h % 90)
+  if (manager === name) manager = ownerFor((h % 90) + 5)
+  const profile = {
+    email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}@${EMAIL_DOMAIN}`,
+    title: titles[Math.floor(h / 7) % titles.length],
+    type: typeRoll < 7 ? 'Employee' : typeRoll < 9 ? 'Contractor' : 'Consultant',
+    status: Math.floor(h / 10) % 22 === 0 ? 'Suspended' : 'Active',
+    manager,
+  }
+  HUMANS.set(name, profile)
+  return profile
+}
+// Where nobody is accountable there is still a status worth showing: it names the reason the
+// owner is missing instead of leaving the cell blank.
+const GAP_STATUS = { left: 'Deactivated', noHr: 'No HR record', never: 'Not known' }
+
 // The demo estate is read on 19 Aug 2026, the same day the trend chart ends.
 const TODAY = Date.UTC(2026, 7, 19)
 const DAY = 86400000
@@ -72,17 +119,41 @@ export const DAY_MS = DAY
 export const TODAY_MS = TODAY
 export const formatDate = fmt
 
+// The five wireframe rows keep the managers they were drawn with.
+const DESIGNED_MANAGERS = ['Dana Weiss', 'Eitan Regev', 'Hila Mizrahi', 'Dana Weiss', 'Guy Peretz']
+
+// The owner's own record, flattened onto the agent row. Where nobody is accountable there is no
+// record to read, so the cells say so rather than guessing.
+function ownerFields(owner, dept, gap) {
+  const p = humanProfile(owner, dept)
+  return {
+    ownerEmail: p ? p.email : null,
+    ownerTitle: p ? p.title : null,
+    ownerType: p ? p.type : null,
+    ownerStatus: p ? p.status : GAP_STATUS[gap] || 'Not known',
+  }
+}
+
 function buildAgents() {
   const rows = []
+  // Seed the wireframe owners first, so a manager drawn on the wireframe also holds for any other
+  // agent the same person happens to own further down the estate.
+  DESIGNED.forEach((d, i) => {
+    if (!d.owner) return
+    const p = humanProfile(d.owner.name, d.dept.value)
+    p.manager = DESIGNED_MANAGERS[i]
+    // The Owner cell on the wireframe already calls this person a contractor, so Type has to agree
+    // rather than quietly contradict the cell next to it.
+    if (d.owner.note === 'contractor') p.type = 'Contractor'
+  })
   DESIGNED.forEach((d, i) => {
     const roll = rnd()
     rows.push({
       key: `a${i}`,
       name: d.name,
-      sponsor: i === 3 ? 'Dana Weiss' : i === 4 ? null : ['Tal Barak', 'Yael Golan', 'Omer Sharon', null, null][i % 5],
       // The manager of the person who owned this agent. Where nobody owns it, this is the
-      // closest human the request can reach.
-      manager: ['Dana Weiss', 'Eitan Regev', 'Hila Mizrahi', 'Dana Weiss', 'Guy Peretz'][i % 5],
+      // closest human a request can still reach, which is what the owner request is sent to.
+      manager: DESIGNED_MANAGERS[i],
       lastUsedTs: lastUsedFor(d.usage, roll),
       createdTs: createdFor(rnd()),
       dept: d.dept,
@@ -93,6 +164,7 @@ function buildAgents() {
       usage: d.usage,
       status: d.status,
       app: d.app,
+      ...ownerFields(d.owner ? d.owner.name : null, d.dept.value, d.owner ? null : i === 3 ? 'never' : 'left'),
       inScope: d.dept.kind !== 'suggested' && d.dept.value === 'Marketing',
       unresolved: d.dept.kind === 'suggested' && d.dept.value === 'Marketing',
     })
@@ -146,21 +218,21 @@ function buildAgents() {
     }
 
     const roll = rnd()
-    const sponsorRoll = rnd()
+    // Consumed but unused. The sponsor field it used to fill is gone, and keeping the draw keeps
+    // the rest of the generated estate identical to what the screenshots and the case describe.
+    rnd()
     const usage = pick(USAGE)
     rows.push({
       key: `a${n}`,
       name,
       dept,
       owner,
-      // A sponsor is a second accountable human. Fewer than half of the estate has one,
-      // and that is the point: it is the fallback that is usually missing.
-      sponsor: sponsorRoll < (owner ? 0.45 : 0.3) ? ownerFor(n + 3) : null,
-      manager: ownerFor(Math.floor(n / 4) + 11),
+      manager: owner ? humanProfile(owner, dept.value).manager : ownerFor(Math.floor(n / 4) + 11),
       lastUsedTs: lastUsedFor(usage, rnd()),
       createdTs: createdFor(rnd()),
       ownerNote,
       ownerGap,
+      ...ownerFields(owner, dept.value, ownerGap),
       risk: roll < 0.1 ? 'High' : roll < 0.42 ? 'Medium' : 'Low',
       usage,
       status: rnd() < 0.06 ? 'On review' : 'Active',
