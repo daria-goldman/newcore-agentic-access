@@ -209,10 +209,18 @@ export default function App() {
         onSend={(count, managers) => {
           setEmailOpen(false)
           const people = managers.length || 1
+          // The closing clause names what the product is actually waiting for. An app owner has to
+          // approve a change; a manager has to put a name on an agent. Answers covered both and
+          // told the admin neither.
+          const waitingFor = emailFinding
+            ? 'Nothing changes until they approve.'
+            : count === 1
+              ? 'Nothing changes for this agent until they name an owner.'
+              : 'Nothing changes for these agents until an owner is named.'
           msg.success(
             count === 1
-              ? `Request sent to ${managers[0] || 'the manager'}. Nothing changes for this agent until they answer.`
-              : `${count} requests sent to ${people} ${people === 1 ? 'person' : 'people'}. Nothing changes for these agents until someone answers.`,
+              ? `Request sent to ${managers[0] || 'the manager'}. ${waitingFor}`
+              : `${count} requests sent to ${people} ${people === 1 ? 'person' : 'people'}. ${waitingFor}`,
           )
         }}
       />

@@ -158,7 +158,7 @@ export default function AccessPanel({
               title: f.title,
               state: f.email ? 'waiting' : f.id === 'f4' ? 'failed' : 'applied',
               note: f.email
-                ? 'Requests went out automatically the moment you applied this. A reminder follows in 3 days, and nothing changes for these agents until a person answers.'
+                ? 'Requests went out automatically the moment you applied this. A reminder follows in 3 days, and nothing changes for these agents until an owner is named.'
                 : f.id === 'f4'
                   ? 'Google Drive returned a permission error: this folder is managed by its app owner, so removing access needs their approval.'
                   : null,
