@@ -46,8 +46,12 @@ const FILTER_DEFS = {
   risk: { label: 'Risk', options: ['High', 'Medium', 'Low'] },
   usage: { label: 'Usage', options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'] },
   status: { label: 'Status', options: ['Active', 'On review'] },
-  ownerType: { label: 'Owner type', options: ['Employee', 'Contractor', 'Consultant', 'Not known'] },
-  ownerStatus: { label: 'Owner status', options: ['Active', 'Suspended', 'Deactivated', 'No HR record', 'Not known'] },
+  ownerType: { label: 'Owner type', options: ['Employee', 'Contractor', 'Consultant', 'N/A'] },
+  // The brief's own status list for a Human, plus N/A for an agent that never had one.
+  ownerStatus: {
+    label: 'Owner status',
+    options: ['Active', 'Suspended', 'Staged', 'Pending activation', 'Deactivated', 'Discovered', 'N/A'],
+  },
   guess: {
     label: 'Suggested department',
     options: ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People'],
@@ -272,8 +276,13 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     if (key === 'manager' || key === 'ownerTitle' || key === 'ownerEmail' || key === 'ownerType')
       base.render = (v) => (v ? <span>{v}</span> : <span className="dept-soft">N/A</span>)
     if (key === 'ownerStatus')
-      base.render = (v) =>
-        v === 'Active' ? <Tag color="default">Active</Tag> : <Tag color={v === 'Not known' ? 'default' : 'gold'}>{v}</Tag>
+      base.render = (v) => {
+        if (!v) return <span className="dept-soft">N/A</span>
+        if (v === 'Active') return <Tag color="default">Active</Tag>
+        // Staged and pending activation are on their way in, the rest are on their way out.
+        const soon = v === 'Staged' || v === 'Pending activation'
+        return <Tag color={soon ? 'blue' : 'gold'}>{v}</Tag>
+      }
     if (key === 'risk') base.render = (v) => <Tag color={riskColor[v]}>{v}</Tag>
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')

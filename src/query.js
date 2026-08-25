@@ -88,7 +88,9 @@ export function parseQuery(text) {
   if (/contractor|подрядчик/.test(t)) add('ownerType', 'Contractor')
   if (/consultant|консультант/.test(t)) add('ownerType', 'Consultant')
   if (/suspended owner|owner is suspended|владелец заблокир/.test(t)) add('ownerStatus', 'Suspended')
-  if (/no hr record|нет записи в hr|нет hr/.test(t)) add('ownerStatus', 'No HR record')
+  if (/discovered|no hr record|нет записи в hr|нет hr/.test(t)) add('ownerStatus', 'Discovered')
+  if (/staged/.test(t)) add('ownerStatus', 'Staged')
+  if (/pending activation/.test(t)) add('ownerStatus', 'Pending activation')
 
   if (/last used today|used today/.test(t)) add('lastUsed', 'Today')
   if (/this week/.test(t)) add('lastUsed', 'This week')
@@ -114,8 +116,8 @@ export const FILTER_MATCH = {
   risk: (r, v) => r.risk === v,
   usage: (r, v) => r.usage === v,
   status: (r, v) => r.status === v,
-  ownerType: (r, v) => (r.ownerType || 'Not known') === v,
-  ownerStatus: (r, v) => (r.ownerStatus || 'Not known') === v,
+  ownerType: (r, v) => (r.ownerType || 'N/A') === v,
+  ownerStatus: (r, v) => (r.ownerStatus || 'N/A') === v,
   guess: (r, v) => r.dept.kind === 'suggested' && r.dept.value === v,
   ownerName: (r, v) => r.owner === v,
   app: (r, v) => r.app === v,

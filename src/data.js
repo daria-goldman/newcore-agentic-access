@@ -87,15 +87,21 @@ function humanProfile(name, dept) {
     email: `${name.toLowerCase().replace(/[^a-z]+/g, '.')}@${EMAIL_DOMAIN}`,
     title: titles[Math.floor(h / 7) % titles.length],
     type: typeRoll < 7 ? 'Employee' : typeRoll < 9 ? 'Contractor' : 'Consultant',
-    status: Math.floor(h / 10) % 22 === 0 ? 'Suspended' : 'Active',
+    status: RARE_STATUS[HUMANS.size] || 'Active',
     manager,
   }
   HUMANS.set(name, profile)
   return profile
 }
-// Where nobody is accountable there is still a status worth showing: it names the reason the
-// owner is missing instead of leaving the cell blank.
-const GAP_STATUS = { left: 'Deactivated', noHr: 'No HR record', never: 'Not known' }
+// The status values are the brief's own list for a Human: active, suspended, staged, pending
+// activation, deactivated, discovered. Almost everyone is active, so the rarer states are placed
+// by hand rather than rolled: a hash spreads them unevenly and can drop one of them entirely,
+// and each of these three is worth seeing on screen at least once.
+const RARE_STATUS = { 3: 'Suspended', 9: 'Staged', 14: 'Pending activation', 21: 'Suspended', 27: 'Staged', 33: 'Pending activation' }
+// Where nobody is accountable the status still says why. An owner who left is deactivated, and
+// an owner holding an account in a connected system with no HR record is exactly the brief's
+// "discovered". An agent that never had an owner has no human behind it at all, so no status.
+const GAP_STATUS = { left: 'Deactivated', noHr: 'Discovered', never: null }
 
 // The demo estate is read on 19 Aug 2026, the same day the trend chart ends.
 const TODAY = Date.UTC(2026, 7, 19)
@@ -130,7 +136,7 @@ function ownerFields(owner, dept, gap) {
     ownerEmail: p ? p.email : null,
     ownerTitle: p ? p.title : null,
     ownerType: p ? p.type : null,
-    ownerStatus: p ? p.status : GAP_STATUS[gap] || 'Not known',
+    ownerStatus: p ? p.status : GAP_STATUS[gap] || null,
   }
 }
 
