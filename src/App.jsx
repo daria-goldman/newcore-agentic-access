@@ -29,6 +29,7 @@ export default function App() {
   const [widget, setWidget] = useState(null)
   const [tableAttached, setTableAttached] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
+  const [emailFinding, setEmailFinding] = useState(null)
   const [emailAgents, setEmailAgents] = useState([])
   const [msg, holder] = message.useMessage()
 
@@ -185,8 +186,11 @@ export default function App() {
         attachedAgents={attachedAgents}
         onDetachWidget={() => setWidget(null)}
         onDetachAgents={() => setSelected([])}
-        onOpenEmail={(findingId) => {
+        onOpenEmail={(findingId, purpose) => {
           setEmailAgents(findingId ? affectedAgents(agents, findingId) : [])
+          // An approval from an app owner and a request for an agent's owner are different
+          // letters to different people. The modal is told which one it is opening.
+          setEmailFinding(purpose === 'approval' ? ALL_FINDINGS.find((f) => f.id === findingId) || null : null)
           setEmailOpen(true)
         }}
       />
@@ -195,6 +199,7 @@ export default function App() {
         open={emailOpen}
         onClose={() => setEmailOpen(false)}
         agents={emailAgents}
+        approval={emailFinding}
         // Sending is an outward facing act. It has to leave a trace on the screen.
         onSend={(count, managers) => {
           setEmailOpen(false)

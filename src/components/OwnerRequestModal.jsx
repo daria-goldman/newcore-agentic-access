@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Modal, Segmented, Select, Tag } from 'antd'
+import { APP_OWNERS } from '../data.js'
 
 const usageLine = (usage) => {
   if (!usage) return 'has not been used in months'
@@ -26,13 +27,61 @@ const openingLine = (a) => {
 
 // One request or forty eight. The difference is not cosmetic: in bulk there is no single
 // recipient to choose, because every agent points at a different person.
-export default function OwnerRequestModal({ open, onClose, onSend, agents = [] }) {
+export default function OwnerRequestModal({ open, onClose, onSend, agents = [], approval = null }) {
   const [showAll, setShowAll] = useState(false)
   const bulk = agents.length > 1
   const managers = [...new Set(agents.map(recipientFor).filter(Boolean))]
   const shown = showAll ? managers : managers.slice(0, 5)
   const sample = agents[0]
   const allUnowned = agents.every((a) => !a.owner)
+  // The application refused the change, not NewCore. The letter goes to the person who owns that
+  // application, and it asks for approval of one specific change, not for ownership of an agent.
+  const appOwner = approval ? APP_OWNERS[approval.where] || 'the app owner' : null
+
+  if (approval) {
+    return (
+      <Modal
+        open={open}
+        onCancel={onClose}
+        onOk={() => onSend(1, [appOwner])}
+        okText="Send request"
+        cancelText="Cancel"
+        title="Approval request"
+        width={538}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 4 }}>
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Send to</div>
+            <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
+              <span style={{ fontWeight: 600, fontSize: 13 }}>{appOwner}</span>
+              <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}> · owner of {approval.where}</span>
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Channel</div>
+            <Segmented options={['Email', 'Slack']} />
+          </div>
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Preview</div>
+            <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: 12 }}>
+              <p style={{ margin: '0 0 8px' }}>
+                <b>{approval.title}</b> was refused by {approval.where}, because the folder is managed by you rather
+                than by NewCore.
+              </p>
+              <p style={{ margin: '0 0 8px' }}>{approval.basis}</p>
+              <p style={{ margin: '0 0 10px' }}>
+                Cost if you approve: {approval.cost.charAt(0).toLowerCase() + approval.cost.slice(1)}
+              </p>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <span className="mail-cta">Approve the removal</span>
+                <a style={{ fontSize: 12 }}>This access is needed</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
+    )
+  }
 
   return (
     <Modal

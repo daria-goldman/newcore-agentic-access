@@ -588,7 +588,7 @@ export default function AccessPanel({
           tone: 'error',
           title: a.title,
           note: a.note,
-          action: { label: 'Ask the app owner to approve', onClick: () => onOpenEmail(a.id) },
+          action: { label: 'Ask the app owner to approve', onClick: () => onOpenEmail(a.id, 'approval') },
         })),
         ...waiting.map((a) => ({
           key: a.id,
@@ -598,23 +598,30 @@ export default function AccessPanel({
           action: { label: 'See what was sent', onClick: () => onOpenEmail(a.id) },
         })),
       ]
-      if (scenario.blindFilter) {
+      // The set the admin chose decides who was left out. Reaching the widest tier means nobody
+      // was, and a report that still mentions three excluded agents would be describing a
+      // different run than the one that happened.
+      const resultTiers = scenario.tiers
+      const resultTier = resultTiers ? resultTiers.options[chat.tier ?? resultTiers.default] : null
+      const outFilter = resultTiers ? resultTier.outFilters : scenario.blindFilter
+      const outCount = outFilter ? countMatching(outFilter) : 0
+      if (outFilter && outCount) {
         tail.push(
           waiting.length
             ? {
                 key: 'blind',
                 tone: 'wait',
-                title: '3 agents stayed out of this change',
+                title: `${outCount} agents stayed out of this change`,
                 note: 'Nobody owns them, so nothing here could be applied to them. Their managers have been asked to name an owner.',
-                link: { label: 'Show them in the table', onClick: () => applyFilters(scenario.blindFilter) },
+                link: { label: 'Show them in the table', onClick: () => applyFilters(outFilter) },
               }
             : {
                 key: 'blind',
                 tone: 'wait',
-                title: '3 agents stayed out of this change',
+                title: `${outCount} agents stayed out of this change`,
                 note: 'Nobody owns them, so nothing here could be applied to them and their department is only a guess.',
                 action: { label: 'Email their managers', onClick: () => onOpenEmail('f8') },
-                link: { label: 'Show them in the table', onClick: () => applyFilters(scenario.blindFilter) },
+                link: { label: 'Show them in the table', onClick: () => applyFilters(outFilter) },
               },
         )
       }

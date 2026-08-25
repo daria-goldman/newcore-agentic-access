@@ -287,6 +287,19 @@ const SEVERITY_MIX = {
   outside: ['Critical', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low'],
 }
 
+// Apps carry an owner in the brief's model. These are the humans an approval request goes to
+// when a change is refused by the application rather than by NewCore.
+export const APP_OWNERS = {
+  Salesforce: 'Tal Barak',
+  HubSpot: 'Yael Golan',
+  'Google Drive': 'Omer Sharon',
+  Slack: 'Dana Weiss',
+  Notion: 'Lior Regev',
+  Jira: 'Eitan Regev',
+  Zendesk: 'Hila Mizrahi',
+  NetSuite: 'Guy Peretz',
+}
+
 export const VIOLATION_TYPES = [
   { key: 'excess', label: 'Excessive permissions', color: '#1677ff' },
   { key: 'owner', label: 'No accountable owner', color: '#69b1ff' },
@@ -569,7 +582,7 @@ export const FINDINGS = [
     title: 'Remove access outside policy for 6 agents',
     where: 'Google Drive',
     basis: 'Reached from an app that is not listed in the policy for their department.',
-    cost: '1 agent posts a weekly report from that folder and will fail until an owner approves.',
+    cost: '1 agent posts a weekly report from that folder and will fail once this access is removed.',
     scope: 6,
     approval: true,
     on: true,
