@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react'
-import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
+import { Button, Checkbox, Dropdown, Input, Select, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { ChevronDownIcon } from '../icons.jsx'
 import { ACTION_GROUPS, AGENTS, SEVERITY_TAG } from '../data.js'
@@ -51,6 +51,8 @@ const DEFAULT_ORDER = [
 ]
 const DEFAULT_HIDDEN = ['manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'lastUsed', 'created']
 
+const DEPARTMENTS = ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People']
+
 // Every value the column actually holds, sorted, with N/A last where the field can be empty.
 function namesIn(key) {
   const values = [...new Set(AGENTS.map((a) => a[key]).filter(Boolean))].sort()
@@ -85,12 +87,16 @@ const FILTER_DEFS = {
   // without anybody remembering to update it. Both are long enough to need the search box.
   manager: { label: 'Manager', options: namesIn('manager'), search: true },
   ownerTitle: { label: 'Owner title', options: namesIn('ownerTitle'), search: true },
-  // Set by the assistant when it narrows a set, so these live as chips rather than column filters.
-  deptAny: { label: 'Department, any basis', options: [] },
-  deptBasis: { label: 'Derived from', options: [] },
-  ownerGap: { label: 'Why there is no owner', options: [] },
-  // Set by a typed question rather than picked from a list, so it lives as a chip only.
-  ownerName: { label: 'Owner', options: [] },
+  // Set by the assistant when it narrows a set. Every one of them carries its values here too,
+  // because the panel tells the admin these are the same filters they can set by hand, and a
+  // filter that cannot be found in the list makes that sentence untrue.
+  deptAny: { label: 'Department, any basis', options: DEPARTMENTS },
+  deptBasis: { label: 'Derived from', options: ['Owner record', 'Manager', 'Usage guess'] },
+  ownerGap: {
+    label: 'Why there is no owner',
+    options: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'],
+  },
+  ownerName: { label: 'Owner name', options: namesIn('owner'), search: true },
   app: { label: 'App', options: ['Salesforce', 'HubSpot', 'Google Drive', 'Slack', 'Notion', 'Jira', 'Zendesk', 'NetSuite'] },
 }
 Object.entries(FILTER_DEFS).forEach(([key, def]) => {
@@ -273,11 +279,26 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
           .map(([key, def]) => (
             <div key={key} className="filter-group">
               <div className="filter-group-title">{def.label}</div>
-              <Checkbox.Group
-                value={filters[key] || []}
-                onChange={(values) => setFilterValues(key, values)}
-                options={def.options.map((o) => ({ label: o, value: o }))}
-              />
+              {def.options.length > 12 ? (
+                // Fifty checkboxes in a dropdown is a list nobody reads. Long sets get a field you
+                // can type into instead.
+                <Select
+                  mode="multiple"
+                  allowClear
+                  showSearch
+                  style={{ width: '100%' }}
+                  placeholder={`Any ${def.label.toLowerCase()}`}
+                  value={filters[key] || []}
+                  onChange={(values) => setFilterValues(key, values)}
+                  options={def.options.map((o) => ({ label: o, value: o }))}
+                />
+              ) : (
+                <Checkbox.Group
+                  value={filters[key] || []}
+                  onChange={(values) => setFilterValues(key, values)}
+                  options={def.options.map((o) => ({ label: o, value: o }))}
+                />
+              )}
             </div>
           ))}
       </div>

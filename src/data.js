@@ -878,7 +878,7 @@ export const SCENARIOS = {
         {
           label: 'Add the ones that never had an owner',
           count: UNOWNED_TOTAL,
-          basis: 'These agents have no owner and no manager, so the request goes to the people who call them most. Nobody is named, so nobody is obliged to answer.',
+          basis: 'These agents have no owner and no manager, so the request goes to the people who call them most.',
           filters: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'] },
         },
       ],
