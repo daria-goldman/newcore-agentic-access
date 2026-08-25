@@ -182,7 +182,8 @@ function buildAgents() {
       name: d.name,
       // The manager of the person who owned this agent. Where nobody owns it, this is the
       // closest human a request can still reach, which is what the owner request is sent to.
-      manager: DESIGNED_MANAGERS[i],
+      // content-bot never had an owner, so it has no owner's manager either.
+      manager: !d.owner && i === 3 ? null : DESIGNED_MANAGERS[i],
       lastUsedTs: lastUsedFor(d.usage, roll),
       createdTs: createdFor(rnd()),
       dept: d.dept,
@@ -257,7 +258,10 @@ function buildAgents() {
       name,
       dept,
       owner,
-      manager: owner ? humanProfile(owner, dept.value).manager : ownerFor(Math.floor(n / 4) + 11),
+      // An agent whose owner left still has that owner's manager. An agent that never had an
+      // owner has no manager either, and inventing one would put a real name on a request nobody
+      // can answer.
+      manager: owner ? humanProfile(owner, dept.value).manager : ownerGap === 'never' ? null : ownerFor(Math.floor(n / 4) + 11),
       lastUsedTs: lastUsedFor(usage, rnd()),
       createdTs: createdFor(rnd()),
       ownerNote,

@@ -14,8 +14,19 @@ const usageLine = (usage) => {
 // only where nobody does does it fall to the owner's manager. Both names are on the row itself,
 // in the Owner and Manager columns, so the recipient here can never disagree with the table.
 const recipientFor = (a) => (a ? a.owner || a.manager : null)
+// Where an agent never had an owner there is no owner's manager either, so the request falls to
+// the third group we decided on: the people who actually call the agent. It is a broadcast, not
+// an assignment, and the letter says so rather than pretending a named human is responsible.
+const CALLERS = 'The people who call this agent most'
+const recipientLabel = (a) => recipientFor(a) || CALLERS
 const recipientRole = (a) =>
-  a && a.owner ? 'owner of this agent' : a && a.ownerGap === 'left' ? 'manager of the departed owner' : 'manager on record for this agent'
+  a && a.owner
+    ? 'owner of this agent'
+    : a && a.manager
+      ? a.ownerGap === 'left'
+        ? 'manager of the departed owner'
+        : 'manager on record for this agent'
+      : 'no owner and no manager on record, so nobody is named'
 // Why the request is being sent, read from the agent rather than written into the template, so
 // the sentence matches the Owner status column instead of contradicting it.
 const openingLine = (a) => {
@@ -31,6 +42,9 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
   const [showAll, setShowAll] = useState(false)
   const bulk = agents.length > 1
   const managers = [...new Set(agents.map(recipientFor).filter(Boolean))]
+  // Agents with nobody named at all. Counted separately, because a recipient list that quietly
+  // skipped them would make the request look more complete than it is.
+  const unreachable = agents.filter((a) => !recipientFor(a)).length
   const shown = showAll ? managers : managers.slice(0, 5)
   const sample = agents[0]
   const allUnowned = agents.every((a) => !a.owner)
@@ -99,11 +113,14 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Send to</div>
             <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>
-                {allUnowned ? 'The manager on record for each agent' : 'The owner, or the manager where nobody owns the agent'}, {managers.length} people
+                {allUnowned ? 'The closest person on record for each agent' : 'The owner, or the manager where nobody owns the agent'}, {managers.length} people
               </div>
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '2px 0 8px' }}>
                 One message per agent, {agents.length} in total, each filled in with that agent's own
                 details.
+                {unreachable
+                  ? ` For ${unreachable} of them nobody is named at all, so that message goes to the people who call the agent most.`
+                  : ''}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                 {shown.map((m) => (
@@ -126,7 +143,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
               {/* One agent has one closest human. Offering a choice here invented a decision
                   the admin does not have to make. */}
               <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
-                <span style={{ fontWeight: 600, fontSize: 13 }}>{recipientFor(sample) || 'Dana Weiss'}</span>
+                <span style={{ fontWeight: 600, fontSize: 13 }}>{recipientLabel(sample)}</span>
                 <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}> · {recipientRole(sample)}</span>
               </div>
             </div>

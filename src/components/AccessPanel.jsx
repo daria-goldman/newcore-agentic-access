@@ -661,7 +661,7 @@ export default function AccessPanel({
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', marginTop: 12 }}>
               {outCount} agents were left out by the scope you chose, and keep their own task.{' '}
               <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => onOpenEmail('f8')}>
-                Email their managers
+                Ask for an owner
               </Button>{' '}
               <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => applyFilters(outFilter)}>
                 Show them in the table
