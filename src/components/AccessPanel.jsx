@@ -396,7 +396,6 @@ export default function AccessPanel({
       const tiers = scenario.tiers
       const tierIndex = tiers ? (chat.tier ?? tiers.default) : null
       const tier = tiers ? tiers.options[tierIndex] : null
-      const blindText = tier?.blind || scenario.blind
       const scopeFilter = tier ? tier.filters : scenario.scope ? scopeFilters[scenario.scope] : null
       return (
         <div className="step" style={{ marginBottom: 16 }}>
@@ -436,16 +435,32 @@ export default function AccessPanel({
               ))}
             </div>
           )}
-          <div className="blind">
-            {blindText}
-            {isLast && !tier?.blind && scenario.blindFilter ? (
-              <div style={{ marginTop: 6 }}>
-                <Button type="link" size="small" style={{ padding: 0 }} onClick={() => applyFilters(scenario.blindFilter)}>
-                  {scenario.blindFilterLabel}
-                </Button>
+          {tiers ? (
+            // No banner here. Each option already carries what it rests on, and repeating it in a
+            // box beneath would be the same sentence twice. What the options do not say is what
+            // happens to the ones left out, so that is the only line kept, and it is checkable.
+            tier.outFilters ? (
+              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
+                The other {countMatching(tier.outFilters)} stay out and become their own task.{' '}
+                {isLast ? (
+                  <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => applyFilters(tier.outFilters)}>
+                    Show them in the table
+                  </Button>
+                ) : null}
               </div>
-            ) : null}
-          </div>
+            ) : null
+          ) : (
+            <div className="blind">
+              {scenario.blind}
+              {isLast && scenario.blindFilter ? (
+                <div style={{ marginTop: 6 }}>
+                  <Button type="link" size="small" style={{ padding: 0 }} onClick={() => applyFilters(scenario.blindFilter)}>
+                    {scenario.blindFilterLabel}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          )}
           {isLast ? (
             // One action and one link, not three buttons that all read as "show me something".
             <div style={{ display: 'flex', gap: 14, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>

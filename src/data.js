@@ -740,12 +740,14 @@ export const SCENARIOS = {
           count: SET.confirmed,
           basis: 'Strongest ground. The human who owns the agent carries Marketing on their own record.',
           filters: { deptAny: ['Marketing'], deptBasis: ['Owner record'] },
+          outFilters: { deptAny: ['Marketing'], deptBasis: ['Manager', 'Usage guess'] },
         },
         {
           label: "Add the ones taken from the owner's manager",
           count: SET.confirmed + SET.inferred,
           basis: "The owner has no department of their own, so the value comes from their manager's record. Still a human record, one step removed.",
           filters: { deptAny: ['Marketing'], deptBasis: ['Owner record', 'Manager'] },
+          outFilters: { deptAny: ['Marketing'], deptBasis: ['Usage guess'] },
         },
         {
           label: 'Add the unowned ones that Marketing calls',
@@ -841,12 +843,14 @@ export const SCENARIOS = {
           count: UNOWNED.left,
           basis: 'The owner record is gone but the manager remains, so there is a named human to ask.',
           filters: { ownerGap: ['Owner left the company'] },
+          outFilters: { ownerGap: ['Owner has no HR record', 'Never had an owner'] },
         },
         {
           label: 'Add owners with no HR record',
           count: UNOWNED.left + UNOWNED.noHr,
           basis: 'The owner exists in the application but not in HR, so the request goes to whoever runs the app rather than to a manager.',
           filters: { ownerGap: ['Owner left the company', 'Owner has no HR record'] },
+          outFilters: { ownerGap: ['Never had an owner'] },
         },
         {
           label: 'Add agents that never had an owner',
