@@ -780,13 +780,13 @@ export const SCENARIOS = {
       ],
     },
     blind:
-      '3 agents could not be placed. Nobody owns them, so their department is only a guess from the people who call them. They stay out of this change and become their own task.',
+      '3 agents could not be placed. Nobody owns them, so their department is only a guess from the people who call them. They are not included in this change.',
     // The blind spot has to be checkable, not just stated.
     blindFilter: { owner: ['No owner'], guess: ['Marketing'] },
     blindFilterLabel: 'Show the 3 in the table',
     findings: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'],
     scope: 'marketing',
-    blindNote: '3 agents were never checked. Nobody owns them, so they were left out of this change and now sit in their own task.',
+    blindNote: '3 agents were never checked. Nobody owns them, so they were left out of this change.',
   },
   threats: {
     title: 'Threats detected in the last 5 days',
@@ -819,9 +819,9 @@ export const SCENARIOS = {
       ['Medium', S0.bySeverity[2].count, 'access outside policy'],
       ['Low', S0.bySeverity[3].count, 'unused tools inside the profile'],
     ],
-    blind: `The ${S0.bySeverity[3].count} low violations are not touched here. They stay in the queue with their reason attached.`,
+    blind: `The ${S0.bySeverity[3].count} low violations are not touched here. They remain open, with their reason attached.`,
     findings: ['f3', 'f1', 'f4'],
-    blindNote: `${S0.bySeverity[3].count} low violations were left in the queue on purpose.`,
+    blindNote: `${S0.bySeverity[3].count} low violations were left open on purpose.`,
   },
   type: {
     title: 'Violations by type',

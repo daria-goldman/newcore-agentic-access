@@ -441,7 +441,7 @@ export default function AccessPanel({
             // happens to the ones left out, so that is the only line kept, and it is checkable.
             tier.outFilters ? (
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)' }}>
-                The other {countMatching(tier.outFilters)} stay out and become their own task.{' '}
+                The other {countMatching(tier.outFilters)} are not included in this change.{' '}
                 {isLast ? (
                   <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => applyFilters(tier.outFilters)}>
                     Show them in the table
@@ -659,7 +659,7 @@ export default function AccessPanel({
             // went wrong. It stays in the report because a report that omits what was deliberately
             // left out is a report quietly claiming the job is finished.
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', marginTop: 12 }}>
-              {outCount} agents were left out by the scope you chose, and keep their own task.{' '}
+              {outCount} agents were left out by the scope you chose and were not changed.{' '}
               <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => onOpenEmail('f8')}>
                 Ask for an owner
               </Button>{' '}
