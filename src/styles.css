@@ -297,6 +297,7 @@ body {
 /* Ant v6 fills a coloured tag with the first step of its palette, which on a white page reads as
    almost no fill at all. Severity is the one thing in this table that has to land at a glance, so
    every status tag moves up to the second step of the same Ant ramp with the eighth for the text.
+   Red sits between its first and second step: at a full step it shouted over everything else.
    Red and orange move with green and gold: leaving them behind would make High look calmer than
    Medium and invert the order the colours exist to convey.
 
@@ -317,6 +318,6 @@ body .ant-tag.ant-tag-filled.ant-tag-orange:not(.ant-tag-disabled) {
   color: #ad4e00;
 }
 body .ant-tag.ant-tag-filled.ant-tag-red:not(.ant-tag-disabled) {
-  background-color: #ffccc7;
+  background-color: #ffdedb;
   color: #a8071a;
 }
