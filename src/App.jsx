@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react'
 import { Menu, message } from 'antd'
-import { RobotOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import RiskWidgets from './components/RiskWidgets.jsx'
 import AgentsTable from './components/AgentsTable.jsx'
 import AccessPanel from './components/AccessPanel.jsx'
 import OwnerRequestModal from './components/OwnerRequestModal.jsx'
+import { RobotIcon, ShieldCheckIcon } from './icons.jsx'
 import { ACTION_LABELS, AGENTS, ALL_FINDINGS, SCENARIOS, affectedAgents, applyFixes, computeStats } from './data.js'
 import { tableRequest } from './query.js'
 
@@ -129,8 +129,10 @@ export default function App() {
           selectedKeys={['risk']}
           style={{ border: 'none' }}
           items={[
-            { key: 'identities', icon: <RobotOutlined />, label: 'Agent Identities' },
-            { key: 'risk', icon: <SafetyCertificateOutlined />, label: 'Risk Manager' },
+            // Drawn at 16, the size Ant's Menu renders its own icons at, and filled with
+            // currentColor so they keep taking the menu's grey and selected blue.
+            { key: 'identities', icon: <RobotIcon width={16} height={16} />, label: 'Agent Identities' },
+            { key: 'risk', icon: <ShieldCheckIcon width={16} height={16} />, label: 'Risk Manager' },
           ]}
         />
       </nav>
