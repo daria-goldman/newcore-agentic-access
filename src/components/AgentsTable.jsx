@@ -110,6 +110,30 @@ function actionItems(count) {
 
 // Three states, and the difference between them is where the value came from: the owner's own
 // record, their manager, or the people who invoke the agent when nobody owns it.
+// What each column actually puts on screen, as plain text. The search box reads these, so typing
+// "contractor" or "Left 12 Apr" finds the rows that show those words, and a column that is hidden
+// contributes nothing: you search what you can see.
+const SEARCH_TEXT = {
+  name: (r) => r.name,
+  dept: (r) =>
+    r.dept.kind === 'suggested'
+      ? `${r.dept.value} ${r.dept.confidence}% users`
+      : r.dept.kind === 'inferred'
+        ? `${r.dept.value} Manager`
+        : r.dept.value,
+  owner: (r) => (r.owner ? `${r.owner} ${r.ownerNote || ''}` : r.ownerGap === 'left' ? 'Left 12 Apr' : 'N/A'),
+  risk: (r) => r.risk,
+  usage: (r) => r.usage,
+  lastUsed: (r) => r.lastUsed,
+  status: (r) => r.status,
+  manager: (r) => r.manager || 'N/A',
+  ownerTitle: (r) => r.ownerTitle || 'N/A',
+  ownerEmail: (r) => r.ownerEmail || 'N/A',
+  ownerType: (r) => r.ownerType || 'N/A',
+  ownerStatus: (r) => r.ownerStatus || 'N/A',
+  created: (r) => r.created,
+}
+
 function Department({ dept }) {
   if (dept.kind === 'confirmed') {
     return (
@@ -204,13 +228,16 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
   const visible = useMemo(() => {
     let out = rows
     const q = query.trim().toLowerCase()
-    if (q) out = out.filter((r) => r.name.includes(q) || (r.owner || '').toLowerCase().includes(q))
+    if (q) {
+      const readers = order.filter((k) => !hidden.includes(k) && SEARCH_TEXT[k]).map((k) => SEARCH_TEXT[k])
+      out = out.filter((r) => readers.some((read) => String(read(r) || '').toLowerCase().includes(q)))
+    }
     Object.entries(filters).forEach(([key, values]) => {
       if (!values || !values.length) return
       out = out.filter((r) => values.some((v) => FILTER_DEFS[key].match(r, v)))
     })
     return out
-  }, [rows, query, filters])
+  }, [rows, query, filters, order, hidden])
 
   const selectedSet = useMemo(() => new Set(selected), [selected])
   const allOnPageless = visible.length > 0 && visible.every((r) => selectedSet.has(r.key))
