@@ -83,7 +83,14 @@ JSON:
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' })
   const key = process.env.ANTHROPIC_API_KEY
-  if (!key) return res.status(501).json({ error: 'no key configured' })
+  if (!key)
+    // Names only, never values. Without this the only signal is silence, and there is no way to
+    // tell a missing variable from one saved to the wrong environment or under a typo.
+    return res.status(501).json({
+      error: 'no key configured',
+      sees: Object.keys(process.env).filter((k) => /anthropic|claude/i.test(k)),
+      env: process.env.VERCEL_ENV || 'unknown',
+    })
 
   const { question, history = [], session = null } = req.body || {}
   if (!question || typeof question !== 'string') return res.status(400).json({ error: 'question required' })
