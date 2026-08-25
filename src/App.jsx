@@ -30,6 +30,7 @@ export default function App() {
   const [tableAttached, setTableAttached] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailFinding, setEmailFinding] = useState(null)
+  const [emailSent, setEmailSent] = useState(false)
   const [emailAgents, setEmailAgents] = useState([])
   // Toasts sit at the bottom, out of the way of the widgets, and stay long enough to be read:
   // every one of them reports something that was just sent to a real person.
@@ -190,6 +191,7 @@ export default function App() {
         onDetachAgents={() => setSelected([])}
         onOpenEmail={(findingId, purpose) => {
           setEmailAgents(findingId ? affectedAgents(agents, findingId) : [])
+          setEmailSent(purpose === 'sent')
           // An approval from an app owner and a request for an agent's owner are different
           // letters to different people. The modal is told which one it is opening.
           setEmailFinding(purpose === 'approval' ? ALL_FINDINGS.find((f) => f.id === findingId) || null : null)
@@ -202,6 +204,7 @@ export default function App() {
         onClose={() => setEmailOpen(false)}
         agents={emailAgents}
         approval={emailFinding}
+        sent={emailSent}
         // Sending is an outward facing act. It has to leave a trace on the screen.
         onSend={(count, managers) => {
           setEmailOpen(false)

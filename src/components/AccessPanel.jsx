@@ -464,7 +464,20 @@ export default function AccessPanel({
           {isLast ? (
             // One action and one link, not three buttons that all read as "show me something".
             <div style={{ display: 'flex', gap: 14, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <Button type="primary" onClick={() => ask('Suggest fixes', 'findings')}>
+              <Button
+                type="primary"
+                onClick={() => {
+                  // A finding that acts on agents the chosen scope leaves out is not a fix, it is
+                  // the change the admin just declined.
+                  if (tiers && scenario.tierFindings)
+                    updateChat(chat.id, (prev) => ({
+                      findings: prev.findings.filter(
+                        (f) => scenario.tierFindings[f.id] === undefined || tierIndex >= scenario.tierFindings[f.id],
+                      ),
+                    }))
+                  ask('Suggest fixes', 'findings')
+                }}
+              >
                 Suggest fixes
               </Button>
               {scopeFilter ? (
@@ -595,7 +608,7 @@ export default function AccessPanel({
           tone: 'wait',
           title: a.title,
           note: a.note,
-          action: { label: 'See what was sent', onClick: () => onOpenEmail(a.id) },
+          action: { label: 'See what was sent', onClick: () => onOpenEmail(a.id, 'sent') },
         })),
       ]
       // The set the admin chose decides who was left out. Reaching the widest tier means nobody

@@ -785,6 +785,9 @@ export const SCENARIOS = {
     blindFilter: { owner: ['No owner'], guess: ['Marketing'] },
     blindFilterLabel: 'Show the 3 in the table',
     findings: ['f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8'],
+    // f8 asks the three unowned agents to be claimed. It only makes sense once they are inside
+    // the change: offering it while the scope excludes them acts on agents the admin ruled out.
+    tierFindings: { f8: 2 },
     scope: 'marketing',
     blindNote: '3 agents were never checked. Nobody owns them, so they were left out of this change.',
   },

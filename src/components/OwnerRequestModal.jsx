@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Modal, Segmented, Select, Tag } from 'antd'
+import { Button, Modal, Segmented, Select, Tag } from 'antd'
 import { APP_OWNERS } from '../data.js'
 
 const usageLine = (usage) => {
@@ -38,7 +38,7 @@ const openingLine = (a) => {
 
 // One request or forty eight. The difference is not cosmetic: in bulk there is no single
 // recipient to choose, because every agent points at a different person.
-export default function OwnerRequestModal({ open, onClose, onSend, agents = [], approval = null }) {
+export default function OwnerRequestModal({ open, onClose, onSend, agents = [], approval = null, sent = false }) {
   const [showAll, setShowAll] = useState(false)
   const bulk = agents.length > 1
   const managers = [...new Set(agents.map(recipientFor).filter(Boolean))]
@@ -62,6 +62,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
         cancelText="Cancel"
         title="Approval request"
         width={538}
+        centered
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 4 }}>
           <div>
@@ -104,13 +105,17 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
       onOk={() => onSend(Math.max(agents.length, 1), managers)}
       okText={bulk ? `Send ${agents.length} requests` : 'Send request'}
       cancelText="Cancel"
-      title="Owner request"
+      // Once the requests have gone out this window is a record, not a form. Offering Send again
+      // would invite the admin to send the same letter twice to the same people.
+      footer={sent ? [<Button key="close" onClick={onClose}>Close</Button>] : undefined}
+      title={sent ? 'Request sent' : 'Owner request'}
       width={538}
+      centered
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 4 }}>
         {bulk ? (
           <div>
-            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Send to</div>
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>{sent ? 'Sent to' : 'Send to'}</div>
             <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>
                 {allUnowned ? 'The closest person on record for each agent' : 'The owner, or the manager where nobody owns the agent'}, {managers.length} people
@@ -139,7 +144,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
         ) : (
           <>
             <div>
-              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Send to</div>
+              <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>{sent ? 'Sent to' : 'Send to'}</div>
               {/* One agent has one closest human. Offering a choice here invented a decision
                   the admin does not have to make. */}
               <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
@@ -147,7 +152,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
                 <span style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}> · {recipientRole(sample)}</span>
               </div>
             </div>
-            <div>
+            <div style={{ display: sent ? 'none' : 'block' }}>
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Template</div>
               <Select
                 style={{ width: '100%' }}
@@ -162,14 +167,20 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
           </>
         )}
 
-        <div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Channel</div>
-          <Segmented options={['Email', 'Slack']} />
-        </div>
+        {sent ? (
+          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)' }}>
+            Sent by email when you applied this change. A reminder follows in 3 days.
+          </div>
+        ) : (
+          <div>
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>Channel</div>
+            <Segmented options={['Email', 'Slack']} />
+          </div>
+        )}
 
         <div>
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>
-            {bulk ? 'Preview, using the first agent' : 'Preview'}
+            {sent ? (bulk ? 'What was sent, using the first agent' : 'What was sent') : bulk ? 'Preview, using the first agent' : 'Preview'}
           </div>
           <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: 12 }}>
             <p style={{ margin: '0 0 8px' }}>
