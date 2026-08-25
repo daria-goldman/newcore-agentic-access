@@ -356,3 +356,18 @@ body .ant-tag.ant-tag-filled.ant-tag-red.tag-critical:not(.ant-tag-disabled) {
   color: rgba(0, 0, 0, 0.55);
   margin-top: 2px;
 }
+
+/* Ant pins the message rail to the top of the viewport, where it lands on the widgets. These
+   toasts confirm something that has just gone out to a person, so they belong out of the way and
+   near the action bar the reader was last looking at. */
+body .ant-message {
+  top: 0;
+  bottom: 0;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 24px;
+  pointer-events: none;
+}
+body .ant-message-notice {
+  pointer-events: auto;
+}

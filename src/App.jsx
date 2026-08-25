@@ -31,7 +31,9 @@ export default function App() {
   const [emailOpen, setEmailOpen] = useState(false)
   const [emailFinding, setEmailFinding] = useState(null)
   const [emailAgents, setEmailAgents] = useState([])
-  const [msg, holder] = message.useMessage()
+  // Toasts sit at the bottom, out of the way of the widgets, and stay long enough to be read:
+  // every one of them reports something that was just sent to a real person.
+  const [msg, holder] = message.useMessage({ duration: 6 })
 
   const chat = chats.find((c) => c.id === activeId) || null
 
