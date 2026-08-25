@@ -296,10 +296,10 @@ export const VIOLATION_TYPES = [
 
 // Solid colours, used for the severity bar and its legend dots.
 export const SEVERITIES = [
-  { key: 'Critical', color: '#e73149' },
-  { key: 'High', color: '#ff8b9a' },
-  { key: 'Medium', color: '#ffcb70' },
-  { key: 'Low', color: '#b5d66d' },
+  { key: 'Critical', color: '#cf1322' },
+  { key: 'High', color: '#ff4d4f' },
+  { key: 'Medium', color: '#ffa940' },
+  { key: 'Low', color: '#7cb305' },
 ]
 
 // The same four levels as tags. Critical and High are both red because the gap between an
