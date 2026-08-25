@@ -46,6 +46,20 @@ function estate() {
       Object.entries(SCENARIOS).map(([k, v]) => [k, { title: v.title, set: v.setTitle, note: v.setNote, blindSpot: v.blind }]),
     ),
     actions: ACTION_GROUPS,
+    // The positions behind the design, so a question about why the screen behaves this way is
+    // answered from the decisions that were actually taken rather than improvised.
+    designRationale: {
+      theTrap: 'A department exists only on humans. The marketing set is derived agent to owner to owner department, never filtered on a field, and the derivation is shown rather than hidden.',
+      evidenceTiers: 'The set is built from evidence of different strength, so the admin chooses how far to reach: the owner record, the owner manager, or a guess from who calls the agent. The default is the narrowest.',
+      whatCountsAsAViolation: 'Two legs. Absolute red lines derivable from the model itself, such as write scope in an app that is only discovered, a policy whose weakest path an agent can take, a local account outside any policy, an agent with no owner. Everything else is a comparison with peer agents on the same app and profile, because most companies have no written baseline to deviate from.',
+      nothingIsAutomatic: 'The system proposes, the admin applies. Nothing at all is applied without confirmation, including obvious violations, because automatic application is the same disease as rubber stamped certification.',
+      whenTheOwnerIsAsked: 'Only where the change alters how the agent actually works. A change that breaks nothing is applied by the admin and the owner is told. Asking about everything produces approval fatigue, asking about nothing breaks other people work.',
+      twoConditionsOnEveryChange: 'No change without its cost visible, and no change without its reason attached.',
+      partialApplication: 'Changes are applied one by one with a status each. Atomic all or nothing would roll back approvals that real people already gave.',
+      tailsAreNamed: 'The closing report states what was applied, what is waiting on a person, what an application refused and why, and how many agents the chosen scope left untouched. It is not allowed to imply completeness.',
+      whatIsDeliberatelyNotHere: 'The screen shows where access diverges and what closing it costs. It does not narrate how an attacker would chain that access, so no job statement promises it. Human access and a redesign of the existing pages are out of scope.',
+      whatWasRefused: 'A second sponsor role, because the owner, the owner manager and the people who call the agent give the same resilience without a new entity. A five day silent fallback to ask, because a change nobody agreed to is still a change nobody agreed to.',
+    },
   })
 }
 
@@ -61,6 +75,7 @@ Rules, in order of importance:
 5. Refuse anything unrelated to this screen in one sentence.
 6. Do not do arithmetic on the numbers. Quote them as they are given. If the admin asks for a figure that is not present, say it is not on this screen.
 7. currentSession, when present, describes what the admin has already done in this conversation. Prefer it over the static numbers when they disagree, because it is more recent.
+8. designRationale holds the positions behind this design. Use it for questions about why the screen works the way it does, and do not invent a reason that is not there.
 
 JSON:
 `
