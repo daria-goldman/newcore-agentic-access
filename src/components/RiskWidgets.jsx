@@ -2,10 +2,9 @@ import React from 'react'
 import { Button, Card, Tag } from 'antd'
 import { ArrowUpOutlined } from '@ant-design/icons'
 import { Donut, SeverityBar, Trend } from './Charts.jsx'
-import { TREND, WIDGET_TO_SCENARIO } from '../data.js'
+import { SEVERITY_TAG, TREND, WIDGET_TO_SCENARIO } from '../data.js'
 
 const meta = (text) => <span className="widget-meta">{text}</span>
-const sevColor = { Critical: 'red', High: 'orange', Medium: 'gold' }
 
 // A widget is two things at once: a shortcut that starts the work, and a piece of context
 // you can attach to a question. The button does the first, clicking the card does the second.
@@ -52,7 +51,7 @@ export default function RiskWidgets({ onFix, selected, onToggle, stats }) {
           {threats.map((t) => (
             <div key={t.label} className="stat-row">
               <span style={{ width: 72, flex: '0 0 72px' }}>
-                <Tag color={sevColor[t.severity]} style={{ marginInlineEnd: 0 }}>
+                <Tag {...SEVERITY_TAG[t.severity]} style={{ marginInlineEnd: 0 }}>
                   {t.severity}
                 </Tag>
               </span>

@@ -294,12 +294,23 @@ export const VIOLATION_TYPES = [
   { key: 'outside', label: 'Outside policy', color: '#d9d9d9' },
 ]
 
+// Solid colours, used for the severity bar and its legend dots.
 export const SEVERITIES = [
   { key: 'Critical', color: '#cf1322' },
-  { key: 'High', color: '#fa8c16' },
-  { key: 'Medium', color: '#faad14' },
-  { key: 'Low', color: '#52c41a' },
+  { key: 'High', color: '#ff4d4f' },
+  { key: 'Medium', color: '#ffa940' },
+  { key: 'Low', color: '#7cb305' },
 ]
+
+// The same four levels as tags. Critical and High are both red because the gap between an
+// agent holding admin access and an agent reaching an unapproved app is a gap in degree, not in
+// kind. Critical carries the heavier fill, so the two never read as the same level.
+export const SEVERITY_TAG = {
+  Critical: { color: 'red', className: 'tag-critical' },
+  High: { color: 'red' },
+  Medium: { color: 'orange' },
+  Low: { color: 'green' },
+}
 
 export const THREAT_TYPES = [
   { key: 'admin', severity: 'Critical', label: 'Agent used admin-level access' },

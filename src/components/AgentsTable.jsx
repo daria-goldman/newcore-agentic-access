@@ -2,16 +2,13 @@ import React, { useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { ChevronDownIcon } from '../icons.jsx'
-import { ACTION_GROUPS } from '../data.js'
+import { ACTION_GROUPS, SEVERITY_TAG } from '../data.js'
 import { FILTER_MATCH } from '../query.js'
 
-// One severity ramp for the whole screen, the same one the widgets use: red is critical, orange
-// is high, gold is medium, green is low. Risk carries all four, because an agent's risk is the
-// severity of the worst finding open against it.
-const riskColor = { Critical: 'red', High: 'orange', Medium: 'gold', Low: 'green' }
-// Silence is graded on that same ramp rather than a scale of its own. Under a month is ordinary
-// operation, one or two months is worth a look, three months is serious, six is an agent nobody
-// would miss.
+// Silence is a duration, not a verdict, so it stays out of red. Red belongs to Risk, which is the
+// column that actually judges the agent, and an agent reading Low risk next to a red Usage tag
+// would be the screen arguing with itself. Three bands: ordinary, stale, long dead. The exact
+// number of months is in the label, the colour only says which band it falls in.
 const usageColor = {
   'Used this week': 'default',
   'Idle 1 week': 'default',
@@ -19,7 +16,7 @@ const usageColor = {
   'Idle 1 month': 'gold',
   'Idle 2 months': 'gold',
   'Idle 3 months': 'orange',
-  'Idle 6 months': 'red',
+  'Idle 6 months': 'orange',
 }
 
 // Agent and Action are pinned: the first column says which identity a row is about and the last one
@@ -308,7 +305,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     if (key === 'risk')
       base.render = (v, r) => (
         <Tooltip title={r.riskReason}>
-          <Tag color={riskColor[v]}>{v}</Tag>
+          <Tag {...SEVERITY_TAG[v]}>{v}</Tag>
         </Tooltip>
       )
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>

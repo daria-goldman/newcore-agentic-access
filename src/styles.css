@@ -307,7 +307,7 @@ body {
    it, transparent, because a stronger fill no longer needs one. */
 body .ant-tag.ant-tag-filled.ant-tag-green:not(.ant-tag-disabled) {
   background-color: #d9f7be;
-  color: #237804;
+  color: #5b8c00;
 }
 body .ant-tag.ant-tag-filled.ant-tag-gold:not(.ant-tag-disabled) {
   background-color: #fff1b8;
@@ -320,4 +320,10 @@ body .ant-tag.ant-tag-filled.ant-tag-orange:not(.ant-tag-disabled) {
 body .ant-tag.ant-tag-filled.ant-tag-red:not(.ant-tag-disabled) {
   background-color: #ffdedb;
   color: #a8071a;
+}
+/* Critical and High are both red on purpose: they differ in degree, not in kind. Critical takes a
+   heavier fill of the same hue so the pair still reads as two levels rather than one. */
+body .ant-tag.ant-tag-filled.ant-tag-red.tag-critical:not(.ant-tag-disabled) {
+  background-color: #ffa39e;
+  color: #820014;
 }
