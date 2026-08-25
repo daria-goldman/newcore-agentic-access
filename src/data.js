@@ -849,7 +849,7 @@ export const SCENARIOS = {
       `For ${UNOWNED.left} of them the owner left the company, so their manager is the closest human.`,
     ],
     setTitle: `${UNOWNED_TOTAL} agents without an owner`,
-    setNote: 'Ownership is the field everything else hangs on. Without it a department cannot be derived and an approval has nobody to go to.',
+    setNote: 'Every agent here has no owner on record. What differs between them is whether there is still a human to ask.',
     rows: [
       ['Owner left the company', UNOWNED.left, 'the human record is gone, the manager remains'],
       ['Owner has no HR record', UNOWNED.noHr, 'the owner exists in the app but not in HR'],
