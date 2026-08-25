@@ -5,7 +5,18 @@ import { ChevronDownIcon } from '../icons.jsx'
 import { ACTION_GROUPS } from '../data.js'
 import { FILTER_MATCH } from '../query.js'
 
-const riskColor = { High: 'red', Medium: 'gold', Low: 'default' }
+const riskColor = { High: 'red', Medium: 'gold', Low: 'green' }
+// Silence is graded, not binary. Under a month is normal, one to two months is worth a look,
+// three months or more is an agent nobody would miss.
+const usageColor = {
+  'Used this week': 'default',
+  'Idle 1 week': 'default',
+  'Idle 2 weeks': 'default',
+  'Idle 1 month': 'gold',
+  'Idle 2 months': 'gold',
+  'Idle 3 months': 'red',
+  'Idle 6 months': 'red',
+}
 
 // Agent and Action are pinned: the first column says which identity a row is about and the last one
 // is how you act on it, so a table without either is not a table you can work in.
@@ -17,7 +28,10 @@ const COLUMN_DEFS = {
   dept: { title: 'Department', width: 175, filter: 'dept' },
   owner: { title: 'Owner', width: 165, filter: 'owner', required: true },
   risk: { title: 'Risk', width: 90, filter: 'risk' },
-  usage: { title: 'Usage', width: 95, filter: 'usage' },
+  usage: { title: 'Usage', width: 145, filter: 'usage' },
+  // Off by default, but next to Usage rather than at the end of the list: it is the exact date
+  // behind the bucket, so the place to look for it is right where the bucket is.
+  lastUsed: { title: 'Last used', width: 140, filter: 'lastUsed', optional: true },
   status: { title: 'Status', width: 105, filter: 'status' },
   // Off by default: useful, but not what the admin scans for first. The five owner columns are
   // the rest of the Human record from the brief, flattened onto the agent row, so a question about
@@ -27,13 +41,12 @@ const COLUMN_DEFS = {
   ownerEmail: { title: 'Owner email', width: 225, optional: true },
   ownerType: { title: 'Owner type', width: 130, filter: 'ownerType', optional: true },
   ownerStatus: { title: 'Owner status', width: 145, filter: 'ownerStatus', optional: true },
-  lastUsed: { title: 'Last used', width: 140, filter: 'lastUsed', optional: true },
   created: { title: 'Date created', width: 140, filter: 'created', optional: true },
   action: { title: 'Actions', width: 80, pinned: 'last' },
 }
 const DEFAULT_ORDER = [
-  'name', 'dept', 'owner', 'risk', 'usage', 'status',
-  'manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'lastUsed', 'created', 'action',
+  'name', 'dept', 'owner', 'risk', 'usage', 'lastUsed', 'status',
+  'manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'created', 'action',
 ]
 const DEFAULT_HIDDEN = ['manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'lastUsed', 'created']
 
@@ -44,7 +57,10 @@ const FILTER_DEFS = {
   },
   owner: { label: 'Owner', options: ['Has an owner', 'No owner'] },
   risk: { label: 'Risk', options: ['High', 'Medium', 'Low'] },
-  usage: { label: 'Usage', options: ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo'] },
+  usage: {
+    label: 'Usage',
+    options: ['Used this week', 'Idle 1 week', 'Idle 2 weeks', 'Idle 1 month', 'Idle 2 months', 'Idle 3 months', 'Idle 6 months'],
+  },
   status: { label: 'Status', options: ['Active', 'On review'] },
   ownerType: { label: 'Owner type', options: ['Employee', 'Contractor', 'Consultant', 'N/A'] },
   // The brief's own status list for a Human, plus N/A for an agent that never had one.
@@ -278,11 +294,12 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     if (key === 'ownerStatus')
       base.render = (v) => {
         if (!v) return <span className="dept-soft">N/A</span>
-        if (v === 'Active') return <Tag color="default">Active</Tag>
+        if (v === 'Active') return <Tag color="green">Active</Tag>
         // Staged and pending activation are on their way in, the rest are on their way out.
         const soon = v === 'Staged' || v === 'Pending activation'
         return <Tag color={soon ? 'blue' : 'gold'}>{v}</Tag>
       }
+    if (key === 'usage') base.render = (v) => <Tag color={usageColor[v] || 'default'}>{v}</Tag>
     if (key === 'risk') base.render = (v) => <Tag color={riskColor[v]}>{v}</Tag>
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')

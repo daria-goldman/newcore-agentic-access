@@ -3,9 +3,10 @@ import { Modal, Segmented, Select, Tag } from 'antd'
 
 const usageLine = (usage) => {
   if (!usage) return 'has not been used in months'
-  const idle = usage.match(/idle (\d+) mo/)
-  if (idle) return `has not been used in ${idle[1]} months`
-  return `is used ${usage}`
+  // The Usage column already names the gap, so the letter repeats it in a sentence rather than
+  // inventing a second way to describe the same silence.
+  if (usage.startsWith('Idle ')) return `has not been used in ${usage.slice(5)}`
+  return 'was last used in the past week'
 }
 
 // The closest human this request can reach. Where somebody owns the agent it is the owner, and

@@ -77,13 +77,14 @@ export function parseQuery(text) {
   if (/on review|in review|under review|на проверк/.test(t)) add('status', 'On review')
   else if (/\bactive\b|активн/.test(t)) add('status', 'Active')
 
+  // Idle means a month or more of silence. The shorter gaps are normal operation, not a finding.
   if (/idle|unused|not used|dormant|never used|простаива|не использ|неактивн|спящ/.test(t)) {
-    add('usage', 'idle 2 mo')
-    add('usage', 'idle 4 mo')
+    add('usage', 'Idle 1 month')
+    add('usage', 'Idle 2 months')
+    add('usage', 'Idle 3 months')
+    add('usage', 'Idle 6 months')
   }
-  if (/\bdaily\b|every day|ежеднев|каждый день/.test(t)) add('usage', 'daily')
-  if (/\bweekly\b|еженедель/.test(t)) add('usage', 'weekly')
-  if (/\bmonthly\b|ежемесяч/.test(t)) add('usage', 'monthly')
+  if (/used this week|active this week|на этой неделе/.test(t)) add('usage', 'Used this week')
 
   if (/contractor|подрядчик/.test(t)) add('ownerType', 'Contractor')
   if (/consultant|консультант/.test(t)) add('ownerType', 'Consultant')

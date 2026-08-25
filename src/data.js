@@ -20,16 +20,29 @@ const LAST = ['Ben-David', 'Katz', 'Levy', 'Shani', 'Barak', 'Avraham', 'Peretz'
 const VERB = ['sync', 'bot', 'agent', 'writer', 'runner', 'assistant', 'copilot', 'worker']
 const NOUN = ['promo', 'campaign', 'content', 'lead', 'deal', 'invoice', 'ticket', 'report', 'meeting', 'brief', 'audit', 'renewal', 'payout', 'onboard', 'inbox']
 const APPS = ['Salesforce', 'HubSpot', 'Google Drive', 'Slack', 'Notion', 'Jira', 'Zendesk', 'NetSuite']
-const USAGE = ['daily', 'weekly', 'monthly', 'idle 2 mo', 'idle 4 mo']
+// Usage is the gap since the agent last called a tool, named in plain words. Last used holds the
+// exact date behind it, which is why the two columns sit next to each other.
+const USAGE = ['Used this week', 'Idle 1 week', 'Idle 2 weeks', 'Idle 1 month', 'Idle 2 months', 'Idle 3 months', 'Idle 6 months']
+// Most agents are in current use. Long silences are the interesting part, so they are present but
+// rare, which is also what makes them worth flagging in red.
+const USAGE_ROLL = [
+  ...Array(9).fill('Used this week'),
+  ...Array(4).fill('Idle 1 week'),
+  ...Array(3).fill('Idle 2 weeks'),
+  ...Array(2).fill('Idle 1 month'),
+  'Idle 2 months',
+  'Idle 3 months',
+  'Idle 6 months',
+]
 const RISK = ['High', 'Medium', 'Low']
 
 // The five rows drawn in the wireframe, kept verbatim so design and code agree.
 const DESIGNED = [
-  { name: 'meeting-prep-agent', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Maya Ben-David' }, risk: 'High', usage: 'daily', status: 'Active', app: 'Salesforce' },
-  { name: 'campaign-writer', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Noa Katz' }, risk: 'Medium', usage: 'weekly', status: 'Active', app: 'HubSpot' },
-  { name: 'promo-sync', dept: { kind: 'confirmed', value: 'Marketing' }, owner: { name: 'Ronen Levy', note: 'contractor' }, risk: 'High', usage: 'daily', status: 'On review', app: 'Salesforce' },
-  { name: 'content-bot', dept: { kind: 'suggested', value: 'Marketing', confidence: 90 }, owner: null, ownerNote: 'no owner', risk: 'High', usage: 'idle 4 mo', status: 'Active', app: 'Google Drive' },
-  { name: 'data-sync', dept: { kind: 'suggested', value: 'Sales', confidence: 100 }, owner: null, ownerNote: 'owner left 12 Apr', risk: 'High', usage: 'weekly', status: 'Active', app: 'NetSuite' },
+  { name: 'meeting-prep-agent', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Maya Ben-David' }, risk: 'High', usage: 'Used this week', status: 'Active', app: 'Salesforce' },
+  { name: 'campaign-writer', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Noa Katz' }, risk: 'Medium', usage: 'Idle 1 week', status: 'Active', app: 'HubSpot' },
+  { name: 'promo-sync', dept: { kind: 'confirmed', value: 'Marketing' }, owner: { name: 'Ronen Levy', note: 'contractor' }, risk: 'High', usage: 'Used this week', status: 'On review', app: 'Salesforce' },
+  { name: 'content-bot', dept: { kind: 'suggested', value: 'Marketing', confidence: 90 }, owner: null, ownerNote: 'no owner', risk: 'High', usage: 'Idle 3 months', status: 'Active', app: 'Google Drive' },
+  { name: 'data-sync', dept: { kind: 'suggested', value: 'Sales', confidence: 100 }, owner: null, ownerNote: 'owner left 12 Apr', risk: 'High', usage: 'Idle 2 weeks', status: 'Active', app: 'NetSuite' },
 ]
 
 export const TOTAL_AGENTS = 612
@@ -113,7 +126,17 @@ const fmt = (ts) => {
 }
 // Last used has to agree with the Usage column, otherwise two cells in the same row
 // would tell different stories.
-const AGO_BY_USAGE = { daily: [0, 1], weekly: [2, 7], monthly: [8, 34], 'idle 2 mo': [60, 75], 'idle 4 mo': [120, 140] }
+// Each bucket sits close to the label it carries, so the tag and the Last used date next to it
+// never look like they are describing two different agents.
+const AGO_BY_USAGE = {
+  'Used this week': [0, 6],
+  'Idle 1 week': [7, 12],
+  'Idle 2 weeks': [14, 20],
+  'Idle 1 month': [30, 40],
+  'Idle 2 months': [60, 70],
+  'Idle 3 months': [92, 104],
+  'Idle 6 months': [182, 196],
+}
 function lastUsedFor(usage, roll) {
   const [from, to] = AGO_BY_USAGE[usage] || [1, 30]
   return TODAY - (from + Math.floor(roll * (to - from))) * DAY
@@ -227,7 +250,7 @@ function buildAgents() {
     // Consumed but unused. The sponsor field it used to fill is gone, and keeping the draw keeps
     // the rest of the generated estate identical to what the screenshots and the case describe.
     rnd()
-    const usage = pick(USAGE)
+    const usage = pick(USAGE_ROLL)
     rows.push({
       key: `a${n}`,
       name,
