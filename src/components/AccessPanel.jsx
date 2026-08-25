@@ -252,7 +252,12 @@ export default function AccessPanel({
       return
     }
     try {
+      // A demo cannot afford a spinner that never resolves. If the model has not answered in ten
+      // seconds, for any reason at all, the request is dropped and the local answers take over.
+      const stop = new AbortController()
+      const timer = setTimeout(() => stop.abort(), 10000)
       const res = await fetch('/api/ask', {
+        signal: stop.signal,
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -263,6 +268,9 @@ export default function AccessPanel({
           session: sessionState(current),
         }),
       })
+      clearTimeout(timer)
+      // Anything other than a clean answer, out of credits, rate limited, upstream down, network
+      // gone, lands here and is treated the same way: as if the model were not configured at all.
       if (res.ok) answer = (await res.json()).text
     } catch (e) {
       answer = null
