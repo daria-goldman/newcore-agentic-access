@@ -605,27 +605,6 @@ export default function AccessPanel({
       const resultTier = resultTiers ? resultTiers.options[chat.tier ?? resultTiers.default] : null
       const outFilter = resultTiers ? resultTier.outFilters : scenario.blindFilter
       const outCount = outFilter ? countMatching(outFilter) : 0
-      if (outFilter && outCount) {
-        tail.push(
-          waiting.length
-            ? {
-                key: 'blind',
-                tone: 'wait',
-                title: `${outCount} agents stayed out of this change`,
-                note: 'Nobody owns them, so nothing here could be applied to them. Their managers have been asked to name an owner.',
-                link: { label: 'Show them in the table', onClick: () => applyFilters(outFilter) },
-              }
-            : {
-                key: 'blind',
-                tone: 'wait',
-                title: `${outCount} agents stayed out of this change`,
-                note: 'Nobody owns them, so nothing here could be applied to them and their department is only a guess.',
-                action: { label: 'Email their managers', onClick: () => onOpenEmail('f8') },
-                link: { label: 'Show them in the table', onClick: () => applyFilters(outFilter) },
-              },
-        )
-      }
-
       const summary = [
         `${applied.length + waiting.length} applied`,
         waiting.length ? `${waiting.length} waiting on people` : null,
@@ -675,6 +654,20 @@ export default function AccessPanel({
             </div>
           ) : null}
 
+          {outFilter && outCount ? (
+            // A scope the admin chose is not a failure, so it does not sit in the block about what
+            // went wrong. It stays in the report because a report that omits what was deliberately
+            // left out is a report quietly claiming the job is finished.
+            <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.55)', marginTop: 12 }}>
+              {outCount} agents were left out by the scope you chose, and keep their own task.{' '}
+              <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => onOpenEmail('f8')}>
+                Email their managers
+              </Button>{' '}
+              <Button type="link" size="small" style={{ padding: 0, fontSize: 12 }} onClick={() => applyFilters(outFilter)}>
+                Show them in the table
+              </Button>
+            </div>
+          ) : null}
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 10 }}>
             This screen does not call the job done.
           </div>
