@@ -70,6 +70,7 @@ export function parseQuery(text) {
   else if (!filters.ownerName && /has an owner|owned by|с владельц|есть владелец/.test(t))
     add('owner', 'Has an owner')
 
+  if (/critical|критич/.test(t)) add('risk', 'Critical')
   if (/high risk|\bhigh\b|высок/.test(t)) add('risk', 'High')
   if (/medium risk|\bmedium\b|средн/.test(t)) add('risk', 'Medium')
   if (/low risk|\blow\b|низк/.test(t)) add('risk', 'Low')

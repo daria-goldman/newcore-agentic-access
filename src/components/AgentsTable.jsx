@@ -6,9 +6,9 @@ import { ACTION_GROUPS } from '../data.js'
 import { FILTER_MATCH } from '../query.js'
 
 // One severity ramp for the whole screen, the same one the widgets use: red is critical, orange
-// is high, gold is medium, green is low. Risk tops out at High here because the estate keeps
-// Critical for threats, so red in this column would claim a level the column does not have.
-const riskColor = { High: 'orange', Medium: 'gold', Low: 'green' }
+// is high, gold is medium, green is low. Risk carries all four, because an agent's risk is the
+// severity of the worst finding open against it.
+const riskColor = { Critical: 'red', High: 'orange', Medium: 'gold', Low: 'green' }
 // Silence is graded on that same ramp rather than a scale of its own. Under a month is ordinary
 // operation, one or two months is worth a look, three months is serious, six is an agent nobody
 // would miss.
@@ -60,7 +60,7 @@ const FILTER_DEFS = {
     options: ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People', 'Not derived'],
   },
   owner: { label: 'Owner', options: ['Has an owner', 'No owner'] },
-  risk: { label: 'Risk', options: ['High', 'Medium', 'Low'] },
+  risk: { label: 'Risk', options: ['Critical', 'High', 'Medium', 'Low'] },
   usage: {
     label: 'Usage',
     options: ['Used this week', 'Idle 1 week', 'Idle 2 weeks', 'Idle 1 month', 'Idle 2 months', 'Idle 3 months', 'Idle 6 months'],
@@ -304,7 +304,13 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         return <Tag color={soon ? 'blue' : 'gold'}>{v}</Tag>
       }
     if (key === 'usage') base.render = (v) => <Tag color={usageColor[v] || 'default'}>{v}</Tag>
-    if (key === 'risk') base.render = (v) => <Tag color={riskColor[v]}>{v}</Tag>
+    // The level alone invites the question "on what basis", so the cell carries its own answer.
+    if (key === 'risk')
+      base.render = (v, r) => (
+        <Tooltip title={r.riskReason}>
+          <Tag color={riskColor[v]}>{v}</Tag>
+        </Tooltip>
+      )
     if (key === 'status') base.render = (v) => <Tag color={v === 'On review' ? 'blue' : 'default'}>{v}</Tag>
     if (key === 'action')
       base.render = (_, r) => (

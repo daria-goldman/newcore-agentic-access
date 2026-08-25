@@ -189,7 +189,7 @@ function buildAgents() {
       owner: d.owner ? d.owner.name : null,
       ownerNote: d.owner ? d.owner.note : d.ownerNote,
       ownerGap: d.owner ? null : i === 3 ? 'never' : 'left',
-      risk: d.risk,
+      risk: d.risk, // placeholder, replaced by withRisk once the findings exist
       usage: d.usage,
       status: d.status,
       app: d.app,
@@ -246,9 +246,10 @@ function buildAgents() {
       dept = { kind: 'confirmed', value: pick(DEPARTMENTS) }
     }
 
-    const roll = rnd()
-    // Consumed but unused. The sponsor field it used to fill is gone, and keeping the draw keeps
-    // the rest of the generated estate identical to what the screenshots and the case describe.
+    // Two draws consumed and no longer used: one filled the sponsor field, which is gone, the
+    // other set a random risk, which is now derived from the agent's findings. Keeping the draws
+    // keeps the rest of the generated estate identical to what the case describes.
+    rnd()
     rnd()
     const usage = pick(USAGE_ROLL)
     rows.push({
@@ -262,7 +263,8 @@ function buildAgents() {
       ownerNote,
       ownerGap,
       ...ownerFields(owner, dept.value, ownerGap),
-      risk: roll < 0.1 ? 'High' : roll < 0.42 ? 'Medium' : 'Low',
+      // Placeholder only. Risk is derived from the agent's own findings once they exist.
+      risk: 'Low',
       usage,
       status: rnd() < 0.06 ? 'On review' : 'Active',
       app: pick(APPS),
@@ -283,6 +285,53 @@ const SEVERITY_MIX = {
   owner: ['Critical', 'High', 'High', 'Medium', 'Medium', 'Medium', 'Low', 'Low'],
   path: ['Critical', 'High', 'Medium', 'Medium', 'Medium', 'Low'],
   outside: ['Critical', 'High', 'High', 'Medium', 'Medium', 'Low', 'Low'],
+}
+
+export const VIOLATION_TYPES = [
+  { key: 'excess', label: 'Excessive permissions', color: '#1677ff' },
+  { key: 'owner', label: 'No accountable owner', color: '#69b1ff' },
+  { key: 'path', label: 'Weak policy path', color: '#91caff' },
+  { key: 'outside', label: 'Outside policy', color: '#d9d9d9' },
+]
+
+export const SEVERITIES = [
+  { key: 'Critical', color: '#cf1322' },
+  { key: 'High', color: '#fa8c16' },
+  { key: 'Medium', color: '#faad14' },
+  { key: 'Low', color: '#52c41a' },
+]
+
+export const THREAT_TYPES = [
+  { key: 'admin', severity: 'Critical', label: 'Agent used admin-level access' },
+  { key: 'unapproved', severity: 'High', label: 'Agent reached an unapproved app' },
+  { key: 'prompt', severity: 'Medium', label: 'Prompt-exposed credential' },
+]
+
+// An agent's risk is not a number of its own. It is the severity of the worst thing currently
+// open against it, so the Risk column, the threats widget and the severity widget can only ever
+// tell the same story. Fix the finding and the risk drops with it.
+const SEVERITY_RANK = { Critical: 4, High: 3, Medium: 2, Low: 1 }
+const THREAT_LABEL = Object.fromEntries(THREAT_TYPES.map((t) => [t.key, t]))
+const VIOLATION_LABEL = Object.fromEntries(VIOLATION_TYPES.map((t) => [t.key, t.label]))
+function riskOf(agent) {
+  let level = null
+  let reason = null
+  const consider = (severity, text) => {
+    if (!level || SEVERITY_RANK[severity] > SEVERITY_RANK[level]) {
+      level = severity
+      reason = text
+    }
+  }
+  agent.threats.forEach((t) => {
+    const def = THREAT_LABEL[t]
+    if (def) consider(def.severity, def.label)
+  })
+  agent.violations.forEach((v) => consider(v.severity, VIOLATION_LABEL[v.type] || 'Open violation'))
+  return { risk: level || 'Low', riskReason: reason || 'Nothing open against this agent' }
+}
+// Applied to a whole estate, both when it is first built and after a fix removes findings.
+export function withRisk(rows) {
+  return rows.map((a) => ({ ...a, ...riskOf(a) }))
 }
 
 function withViolations(rows) {
@@ -318,12 +367,14 @@ function withViolations(rows) {
   return rows
 }
 
-export const AGENTS = withViolations(
-  buildAgents().map((a) => ({
+export const AGENTS = withRisk(
+  withViolations(
+    buildAgents().map((a) => ({
     ...a,
-    lastUsed: fmt(a.lastUsedTs),
-    created: fmt(a.createdTs),
-  })),
+      lastUsed: fmt(a.lastUsedTs),
+      created: fmt(a.createdTs),
+    })),
+  ),
 )
 
 // Everything the widgets show is derived from the estate above, so applying a change moves
@@ -428,32 +479,14 @@ export function applyFixes(agents, findingIds) {
       }
       return true
     })
-    return violations === a.violations && threats === a.threats ? a : { ...a, violations, threats }
+    if (violations === a.violations && threats === a.threats) return a
+    const next = { ...a, violations, threats }
+    return { ...next, ...riskOf(next) }
   })
 }
 export const MARKETING_AGENTS = AGENTS.filter((a) => a.inScope)
 export const UNRESOLVED_AGENTS = AGENTS.filter((a) => a.unresolved)
 export const UNOWNED_AGENTS = AGENTS.filter((a) => !a.owner)
-
-export const VIOLATION_TYPES = [
-  { key: 'excess', label: 'Excessive permissions', color: '#1677ff' },
-  { key: 'owner', label: 'No accountable owner', color: '#69b1ff' },
-  { key: 'path', label: 'Weak policy path', color: '#91caff' },
-  { key: 'outside', label: 'Outside policy', color: '#d9d9d9' },
-]
-
-export const SEVERITIES = [
-  { key: 'Critical', color: '#cf1322' },
-  { key: 'High', color: '#fa8c16' },
-  { key: 'Medium', color: '#faad14' },
-  { key: 'Low', color: '#52c41a' },
-]
-
-export const THREAT_TYPES = [
-  { key: 'admin', severity: 'Critical', label: 'Agent used admin-level access' },
-  { key: 'unapproved', severity: 'High', label: 'Agent reached an unapproved app' },
-  { key: 'prompt', severity: 'Medium', label: 'Prompt-exposed credential' },
-]
 
 // Ten readings between 19 May and 11 Aug 2026, so every point on the chart has a real date.
 const TREND_OPEN = [21, 23, 24, 27, 29, 33, 36, 39, 41, 43]
