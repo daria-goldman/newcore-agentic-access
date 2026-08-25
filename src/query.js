@@ -127,6 +127,8 @@ export const FILTER_MATCH = {
     !r.owner &&
     ({ 'Owner left the company': 'left', 'Owner has no HR record': 'noHr', 'Never had an owner': 'never' })[v] ===
       r.ownerGap,
+  manager: (r, v) => (r.manager || 'N/A') === v,
+  ownerTitle: (r, v) => (r.ownerTitle || 'N/A') === v,
   ownerType: (r, v) => (r.ownerType || 'N/A') === v,
   ownerStatus: (r, v) => (r.ownerStatus || 'N/A') === v,
   guess: (r, v) => r.dept.kind === 'suggested' && r.dept.value === v,

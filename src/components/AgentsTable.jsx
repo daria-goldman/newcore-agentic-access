@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { Button, Checkbox, Dropdown, Input, Table, Tag, Tooltip } from 'antd'
 import { DownOutlined, HolderOutlined, LockOutlined, SearchOutlined, SettingOutlined } from '@ant-design/icons'
 import { ChevronDownIcon } from '../icons.jsx'
-import { ACTION_GROUPS, SEVERITY_TAG } from '../data.js'
+import { ACTION_GROUPS, AGENTS, SEVERITY_TAG } from '../data.js'
 import { FILTER_MATCH } from '../query.js'
 
 // Silence is a duration, not a verdict, so it stays out of red. Red belongs to Risk, which is the
@@ -37,8 +37,8 @@ const COLUMN_DEFS = {
   // Off by default: useful, but not what the admin scans for first. The five owner columns are
   // the rest of the Human record from the brief, flattened onto the agent row, so a question about
   // the person behind an agent can be answered without leaving the table.
-  manager: { title: 'Manager', width: 165, optional: true },
-  ownerTitle: { title: 'Owner title', width: 195, optional: true },
+  manager: { title: 'Manager', width: 165, filter: 'manager', optional: true },
+  ownerTitle: { title: 'Owner title', width: 195, filter: 'ownerTitle', optional: true },
   ownerEmail: { title: 'Owner email', width: 225, optional: true },
   ownerType: { title: 'Owner type', width: 130, filter: 'ownerType', optional: true },
   ownerStatus: { title: 'Owner status', width: 145, filter: 'ownerStatus', optional: true },
@@ -50,6 +50,12 @@ const DEFAULT_ORDER = [
   'manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'created', 'action',
 ]
 const DEFAULT_HIDDEN = ['manager', 'ownerTitle', 'ownerEmail', 'ownerType', 'ownerStatus', 'lastUsed', 'created']
+
+// Every value the column actually holds, sorted, with N/A last where the field can be empty.
+function namesIn(key) {
+  const values = [...new Set(AGENTS.map((a) => a[key]).filter(Boolean))].sort()
+  return AGENTS.some((a) => !a[key]) ? [...values, 'N/A'] : values
+}
 
 const FILTER_DEFS = {
   dept: {
@@ -75,6 +81,10 @@ const FILTER_DEFS = {
   },
   lastUsed: { label: 'Last used', options: ['Today', 'This week', 'This month', 'Older than 3 months'] },
   created: { label: 'Date created', options: ['Last 30 days', 'This year', 'Older than a year'] },
+  // Read off the estate rather than written down, so a name added to the data appears in the list
+  // without anybody remembering to update it. Both are long enough to need the search box.
+  manager: { label: 'Manager', options: namesIn('manager'), search: true },
+  ownerTitle: { label: 'Owner title', options: namesIn('ownerTitle'), search: true },
   // Set by the assistant when it narrows a set, so these live as chips rather than column filters.
   deptAny: { label: 'Department, any basis', options: [] },
   deptBasis: { label: 'Derived from', options: [] },
@@ -291,6 +301,7 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
     }
     if (filterKey) {
       base.filters = FILTER_DEFS[filterKey].options.map((o) => ({ text: o, value: o }))
+      if (FILTER_DEFS[filterKey].search) base.filterSearch = true
       base.filteredValue = filters[filterKey] && filters[filterKey].length ? filters[filterKey] : null
       base.onFilter = () => true
     }
