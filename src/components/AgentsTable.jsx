@@ -5,16 +5,20 @@ import { ChevronDownIcon } from '../icons.jsx'
 import { ACTION_GROUPS } from '../data.js'
 import { FILTER_MATCH } from '../query.js'
 
-const riskColor = { High: 'red', Medium: 'gold', Low: 'green' }
-// Silence is graded, not binary. Under a month is normal, one to two months is worth a look,
-// three months or more is an agent nobody would miss.
+// One severity ramp for the whole screen, the same one the widgets use: red is critical, orange
+// is high, gold is medium, green is low. Risk tops out at High here because the estate keeps
+// Critical for threats, so red in this column would claim a level the column does not have.
+const riskColor = { High: 'orange', Medium: 'gold', Low: 'green' }
+// Silence is graded on that same ramp rather than a scale of its own. Under a month is ordinary
+// operation, one or two months is worth a look, three months is serious, six is an agent nobody
+// would miss.
 const usageColor = {
   'Used this week': 'default',
   'Idle 1 week': 'default',
   'Idle 2 weeks': 'default',
   'Idle 1 month': 'gold',
   'Idle 2 months': 'gold',
-  'Idle 3 months': 'red',
+  'Idle 3 months': 'orange',
   'Idle 6 months': 'red',
 }
 

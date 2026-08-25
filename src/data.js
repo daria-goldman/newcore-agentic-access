@@ -446,7 +446,7 @@ export const SEVERITIES = [
   { key: 'Critical', color: '#cf1322' },
   { key: 'High', color: '#fa8c16' },
   { key: 'Medium', color: '#faad14' },
-  { key: 'Low', color: '#d9d9d9' },
+  { key: 'Low', color: '#52c41a' },
 ]
 
 export const THREAT_TYPES = [
