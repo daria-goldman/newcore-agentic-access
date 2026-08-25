@@ -15,7 +15,7 @@ import {
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
-import { answerFor, countMatching, isClearCommand, matchScenario, parseQuery, tableRequest } from '../query.js'
+import { answerFor, countMatching, isClearCommand, matchScenario, pageAnswer, parseQuery, tableRequest } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
 const SUGGESTION_ICON = { harden: <ShieldCheckIcon />, owners: <AccountIcon />, path: <RouteIcon /> }
@@ -193,7 +193,17 @@ export default function AccessPanel({
   // server. Without one the prototype falls back to the rules it already carries, so a demo
   // never depends on the network.
   const askAssistant = async (text, current) => {
-    let answer = null
+    // The numbers on this page are the most reliable thing in the room. Answer from them first,
+    // and only then fall back to a model or to a canned reply.
+    let answer = pageAnswer(text, agents)
+    if (answer) {
+      updateChat(current.id, (prev) => ({
+        messages: prev.messages.map((m, i) =>
+          i === prev.messages.length - 1 && m.kind === 'thinking' ? { role: 'assistant', kind: 'note', text: answer } : m,
+        ),
+      }))
+      return
+    }
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
@@ -246,7 +256,7 @@ export default function AccessPanel({
       // Inside an open chat the request continues it. Only a request with no chat behind it
       // opens a new one.
       if (view === 'chat' && chat) {
-        const payload = tableRequest(text)
+        const payload = tableRequest(text, agents)
         if (payload.cleared) applyFilters({})
         updateChat(chat.id, (prev) => ({
           step: 'thinking',
@@ -310,6 +320,8 @@ export default function AccessPanel({
             Filters cleared. The table is back to all {result.count} agents.
           </div>
         )
+      if (result.count === null && result.answer)
+        return <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>{result.answer}</div>
       if (result.count === null)
         return (
           <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
@@ -325,7 +337,9 @@ export default function AccessPanel({
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 8px' }}>
             Turned into these filters, the same ones you can set by hand.
           </div>
-          {result.unit ? <div className="blind" style={{ marginBottom: 10 }}>{result.unit}</div> : null}
+          {result.unit || result.answer ? (
+            <div className="blind" style={{ marginBottom: 10 }}>{result.unit || result.answer}</div>
+          ) : null}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
             {Object.entries(result.parsed).flatMap(([key, values]) =>
               values.map((v) => (

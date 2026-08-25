@@ -63,7 +63,7 @@ export default function App() {
   // A question typed against the table becomes its own chat: the words are turned into the same
   // filters the admin could set by hand, and applied only when they say so.
   const startFilterChat = (text) => {
-    const payload = tableRequest(text)
+    const payload = tableRequest(text, agents)
     if (payload.cleared) setFilters({})
     const id = `c${++chatSeq}`
     setChats((prev) => [

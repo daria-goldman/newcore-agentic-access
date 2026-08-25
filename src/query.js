@@ -1,4 +1,4 @@
-import { AGENTS, DAY_MS, THREAT_TYPES, TODAY_MS } from './data.js'
+import { AGENTS, DAY_MS, THREAT_TYPES, TODAY_MS, computeStats } from './data.js'
 
 const DEPARTMENTS = ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People']
 
@@ -62,7 +62,7 @@ export function parseQuery(text) {
     add('dept', 'Not derived')
 
   if (
-    /no owner|without an owner|unowned|nobody owns|owned by nobody|owned by no one|owner left|no accountable|нет владельц|без владельц|нет ответственн|без ответственн|бесхозн/.test(
+    /no owner|without an owner|unowned|nobody owns|owned by nobody|owned by no one|owner left|accountable owner|(do not|don'?t|doesn'?t|does not) have (an?|any) .{0,14}owner|missing an owner|orphan|нет владельц|без владельц|нет ответственн|без ответственн|бесхозн/.test(
       t,
     )
   )
@@ -234,7 +234,57 @@ function unitNote(text, parsed, count) {
   return `You asked about findings, the table holds agents. ${findings}, and they sit on these ${count} agents, because one agent can carry more than one.`
 }
 
-export function tableRequest(text) {
+// Everything the six widgets show, in sentences. The assistant should never be less informed
+// than the screen it sits next to, so each topic reads the same computed estate the widgets read
+// and hands back the breakdown, not just a total.
+const PAGE_TOPICS = [
+  {
+    re: /accountable owner|no owner|unowned|nobody owns|orphan|владел|ответственн/,
+    build: (s) =>
+      `${s.unowned.total} agents have nobody accountable: ${s.unowned.left} whose owner left the company, ${s.unowned.noHr} whose owner has no record in HR, ${s.unowned.never} that never had an owner at all.`,
+  },
+  {
+    re: /threat|угроз/,
+    build: (s) =>
+      `${s.threats.reduce((n, t) => n + t.count, 0)} threats, grouped by what caused them: ${s.threats
+        .map((t) =>
+          t.label.startsWith('Agent ')
+            ? `${t.count} agents ${t.label.slice(6).toLowerCase()}`
+            : `${t.count} with a ${t.label.toLowerCase()}`,
+        )
+        .join(', ')}.`,
+  },
+  {
+    re: /weak(est)? (policy |authentication |auth )?path|mkt-01|слаб\w* пут/,
+    build: (s) => `${s.weakPath} agents can only take the weakest path their policy allows, across 8 policies.`,
+  },
+  {
+    re: /by type|violation type|excessive permission|outside policy|по типу/,
+    build: (s) => `${s.open} open violations by type: ${s.byType.map((t) => `${t.count} ${t.label.toLowerCase()}`).join(', ')}.`,
+  },
+  {
+    re: /severity|how severe|violations?\b|findings?\b|issues?\b|нарушен|находк/,
+    build: (s) =>
+      `${s.open} open violations: ${s.bySeverity.map((x) => `${x.count} ${x.label.toLowerCase()}`).join(', ')}.`,
+  },
+  {
+    re: /marketing|in scope|маркетинг/,
+    build: (s) =>
+      `${s.marketingInScope} agents belong to someone in Marketing. 3 more are called mostly by Marketing, but nobody owns them, so they cannot be placed.`,
+  },
+  {
+    re: /how many agents|total agents|estate|сколько агент/,
+    build: (s, agents) => `${agents.length} agents in the estate, ${s.open} open violations and ${s.threats.reduce((n, t) => n + t.count, 0)} threats against them.`,
+  },
+]
+export function pageAnswer(text, agents = AGENTS) {
+  const t = text.toLowerCase()
+  const hit = PAGE_TOPICS.find((topic) => topic.re.test(t))
+  if (!hit) return null
+  return hit.build(computeStats(agents), agents)
+}
+
+export function tableRequest(text, agents = AGENTS) {
   const cleared = isClearCommand(text)
   const parsed = cleared ? {} : parseQuery(text)
   const count = cleared ? countMatching({}) : Object.keys(parsed).length ? countMatching(parsed) : null
@@ -244,5 +294,8 @@ export function tableRequest(text) {
     cleared,
     explanation: cleared || count === null ? null : explain(parsed, count),
     unit: cleared || count === null ? null : unitNote(text, parsed, count),
+    // Where the question is about a number rather than a set of rows, the sentence carries the
+    // breakdown the widget shows, so the two can never say different things.
+    answer: cleared ? null : pageAnswer(text, agents),
   }
 }
