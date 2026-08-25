@@ -728,6 +728,36 @@ export const SCENARIOS = {
       ['Read from the owner record', SET.confirmed, 'the owner carries Marketing on their own record'],
       ['Taken from the manager', SET.inferred, 'the owner has no department, so the value comes from their manager'],
     ],
+    // The set is not one thing, it is three tiers of evidence, and the admin decides how far down
+    // to reach. The default stops where the value is still derived from a human record.
+    tiers: {
+      question: 'How far down the evidence should this change reach?',
+      unit: 'agents',
+      default: 1,
+      options: [
+        {
+          label: 'Only where the department is on the owner record',
+          count: SET.confirmed,
+          basis: 'Strongest ground. The human who owns the agent carries Marketing on their own record.',
+          filters: { deptAny: ['Marketing'], deptBasis: ['Owner record'] },
+        },
+        {
+          label: "Add the ones taken from the owner's manager",
+          count: SET.confirmed + SET.inferred,
+          basis: "The owner has no department of their own, so the value comes from their manager's record. Still a human record, one step removed.",
+          filters: { deptAny: ['Marketing'], deptBasis: ['Owner record', 'Manager'] },
+        },
+        {
+          label: 'Add the unowned ones that Marketing calls',
+          count: SET.confirmed + SET.inferred + SET.unresolved,
+          basis: 'Nobody owns these. The department is a guess from who invoked them in the last 90 days, not a fact, and there is no owner to approve a change that breaks them.',
+          filters: { deptAny: ['Marketing'] },
+          blind:
+            'The 3 unowned agents are in, on a guess from usage rather than a derived value. Nobody can approve a change to them, so each one is applied provisionally and the guess is written into the record.',
+          blindNote: '3 agents were included on a usage guess, with no owner to approve the change. That is on the record.',
+        },
+      ],
+    },
     blind:
       '3 agents could not be placed. Nobody owns them, so their department is only a guess from the people who call them. They stay out of this change and become their own task.',
     // The blind spot has to be checkable, not just stated.
@@ -800,6 +830,32 @@ export const SCENARIOS = {
       ['Owner has no HR record', UNOWNED.noHr, 'the owner exists in the app but not in HR'],
       ['Never had an owner', UNOWNED.never, 'created without an owner and never claimed'],
     ],
+    // Here the ladder is not how sure we are, it is whether there is anybody left to ask.
+    tiers: {
+      question: 'Who should this request actually reach?',
+      unit: 'agents',
+      default: 2,
+      options: [
+        {
+          label: 'Only where a manager can be reached',
+          count: UNOWNED.left,
+          basis: 'The owner record is gone but the manager remains, so there is a named human to ask.',
+          filters: { ownerGap: ['Owner left the company'] },
+        },
+        {
+          label: 'Add owners with no HR record',
+          count: UNOWNED.left + UNOWNED.noHr,
+          basis: 'The owner exists in the application but not in HR, so the request goes to whoever runs the app rather than to a manager.',
+          filters: { ownerGap: ['Owner left the company', 'Owner has no HR record'] },
+        },
+        {
+          label: 'Add agents that never had an owner',
+          count: UNOWNED_TOTAL,
+          basis: 'Nobody was ever named for these. There is no person to ask, only the people who call the agent, so the request is a broadcast rather than an assignment.',
+          filters: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'] },
+        },
+      ],
+    },
     blind: `3 of these ${UNOWNED_TOTAL} are also the agents that could not be placed in any department.`,
     blindFilter: { owner: ['No owner'], guess: ['Marketing'] },
     blindFilterLabel: 'Show those 3 in the table',

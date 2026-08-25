@@ -327,3 +327,32 @@ body .ant-tag.ant-tag-filled.ant-tag-red.tag-critical:not(.ant-tag-disabled) {
   background-color: #ffa39e;
   color: #820014;
 }
+
+/* An evidence tier is a choice with a reason, so the reason sits under the label rather than in a
+   tooltip. The count is right aligned because the admin is comparing sizes down the column. */
+.tier.ant-radio-wrapper {
+  align-items: flex-start;
+  margin-inline-end: 0;
+}
+.tier.ant-radio-wrapper > span:first-child {
+  margin-top: 2px;
+}
+.tier > span:last-child {
+  display: block;
+  width: 100%;
+}
+.tier-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 18px;
+  color: rgba(0, 0, 0, 0.88);
+}
+.tier-basis {
+  display: block;
+  font-size: 12px;
+  line-height: 16px;
+  color: rgba(0, 0, 0, 0.55);
+  margin-top: 2px;
+}

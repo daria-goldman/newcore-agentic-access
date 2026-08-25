@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Button, Input, Progress, Switch, Tag, Tooltip } from 'antd'
+import { Button, Input, Progress, Radio, Switch, Tag, Tooltip } from 'antd'
 import { CheckCircleFilled, ClockCircleFilled, CloseCircleFilled } from '@ant-design/icons'
 import {
   AccountIcon,
@@ -390,24 +390,55 @@ export default function AccessPanel({
         </div>
       )
 
-    if (m.kind === 'set')
+    if (m.kind === 'set') {
+      // Where a set is built from evidence of different strength, the assistant does not pick for
+      // the admin. It lays out the tiers, says what each one rests on, and asks how far to reach.
+      const tiers = scenario.tiers
+      const tierIndex = tiers ? (chat.tier ?? tiers.default) : null
+      const tier = tiers ? tiers.options[tierIndex] : null
+      const blindText = tier?.blind || scenario.blind
+      const scopeFilter = tier ? tier.filters : scenario.scope ? scopeFilters[scenario.scope] : null
       return (
         <div className="step" style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>{scenario.setTitle}</div>
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 12px' }}>{scenario.setNote}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-            {scenario.rows.map(([label, count, why]) => (
-              <div key={label} className="stat-row">
-                <Tooltip title={why}>
-                  <span>{label}</span>
-                </Tooltip>
-                <b>{count}</b>
-              </div>
-            ))}
+          <div style={{ fontSize: 15, fontWeight: 600 }}>
+            {tier ? `${tier.count} ${tiers.unit} in scope` : scenario.setTitle}
           </div>
+          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 12px' }}>{scenario.setNote}</div>
+          {tiers ? (
+            <>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{tiers.question}</div>
+              <Radio.Group
+                value={tierIndex}
+                disabled={!isLast}
+                onChange={(e) => updateChat(chat.id, () => ({ tier: e.target.value }))}
+                style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}
+              >
+                {tiers.options.map((o, i) => (
+                  <Radio key={o.label} value={i} className="tier">
+                    <span className="tier-head">
+                      <span>{o.label}</span>
+                      <b>{o.count}</b>
+                    </span>
+                    <span className="tier-basis">{o.basis}</span>
+                  </Radio>
+                ))}
+              </Radio.Group>
+            </>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
+              {scenario.rows.map(([label, count, why]) => (
+                <div key={label} className="stat-row">
+                  <Tooltip title={why}>
+                    <span>{label}</span>
+                  </Tooltip>
+                  <b>{count}</b>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="blind">
-            {scenario.blind}
-            {isLast && scenario.blindFilter ? (
+            {blindText}
+            {isLast && !tier?.blind && scenario.blindFilter ? (
               <div style={{ marginTop: 6 }}>
                 <Button type="link" size="small" style={{ padding: 0 }} onClick={() => applyFilters(scenario.blindFilter)}>
                   {scenario.blindFilterLabel}
@@ -421,15 +452,16 @@ export default function AccessPanel({
               <Button type="primary" onClick={() => ask('Suggest fixes', 'findings')}>
                 Suggest fixes
               </Button>
-              {scenario.scope ? (
-                <Button type="link" style={{ padding: 0 }} onClick={() => applyFilters(scopeFilters[scenario.scope])}>
-                  Show these {countMatching(scopeFilters[scenario.scope])} in the table
+              {scopeFilter ? (
+                <Button type="link" style={{ padding: 0 }} onClick={() => applyFilters(scopeFilter)}>
+                  Show these {countMatching(scopeFilter)} in the table
                 </Button>
               ) : null}
             </div>
           ) : null}
         </div>
       )
+    }
 
     if (m.kind === 'findings')
       return (

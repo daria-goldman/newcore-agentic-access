@@ -118,6 +118,15 @@ export const FILTER_MATCH = {
   risk: (r, v) => r.risk === v,
   usage: (r, v) => r.usage === v,
   status: (r, v) => r.status === v,
+  // How the department on this row was arrived at, and the department regardless of that. Kept
+  // apart on purpose: the whole case turns on the difference between a derived value and a guess.
+  deptAny: (r, v) => r.dept.value === v,
+  deptBasis: (r, v) =>
+    ({ 'Owner record': 'confirmed', Manager: 'inferred', 'Usage guess': 'suggested' })[v] === r.dept.kind,
+  ownerGap: (r, v) =>
+    !r.owner &&
+    ({ 'Owner left the company': 'left', 'Owner has no HR record': 'noHr', 'Never had an owner': 'never' })[v] ===
+      r.ownerGap,
   ownerType: (r, v) => (r.ownerType || 'N/A') === v,
   ownerStatus: (r, v) => (r.ownerStatus || 'N/A') === v,
   guess: (r, v) => r.dept.kind === 'suggested' && r.dept.value === v,

@@ -75,6 +75,10 @@ const FILTER_DEFS = {
   },
   lastUsed: { label: 'Last used', options: ['Today', 'This week', 'This month', 'Older than 3 months'] },
   created: { label: 'Date created', options: ['Last 30 days', 'This year', 'Older than a year'] },
+  // Set by the assistant when it narrows a set, so these live as chips rather than column filters.
+  deptAny: { label: 'Department, any basis', options: [] },
+  deptBasis: { label: 'Derived from', options: [] },
+  ownerGap: { label: 'Why there is no owner', options: [] },
   // Set by a typed question rather than picked from a list, so it lives as a chip only.
   ownerName: { label: 'Owner', options: [] },
   app: { label: 'App', options: ['Salesforce', 'HubSpot', 'Google Drive', 'Slack', 'Notion', 'Jira', 'Zendesk', 'NetSuite'] },
