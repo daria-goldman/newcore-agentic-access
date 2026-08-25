@@ -129,10 +129,9 @@ export default function App() {
           selectedKeys={['risk']}
           style={{ border: 'none' }}
           items={[
-            // Drawn at 16, the size Ant's Menu renders its own icons at, and filled with
-            // currentColor so they keep taking the menu's grey and selected blue.
-            { key: 'identities', icon: <RobotIcon width={16} height={16} />, label: 'Agent Identities' },
-            { key: 'risk', icon: <ShieldCheckIcon width={16} height={16} />, label: 'Risk Manager' },
+            // Filled with currentColor, so they keep taking the menu's grey and selected blue.
+            { key: 'identities', icon: <RobotIcon width={20} height={20} />, label: 'Agent Identities' },
+            { key: 'risk', icon: <ShieldCheckIcon width={20} height={20} />, label: 'Risk Manager' },
           ]}
         />
       </nav>

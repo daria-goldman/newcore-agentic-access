@@ -293,3 +293,30 @@ body {
   display: inline-block; background: #1677ff; color: #fff; border-radius: 6px;
   padding: 4px 12px; font-size: 13px;
 }
+
+/* Ant v6 fills a coloured tag with the first step of its palette, which on a white page reads as
+   almost no fill at all. Severity is the one thing in this table that has to land at a glance, so
+   every status tag moves up to the second step of the same Ant ramp with the eighth for the text.
+   Red and orange move with green and gold: leaving them behind would make High look calmer than
+   Medium and invert the order the colours exist to convey.
+
+   The selector carries the element name on purpose. Ant writes these as
+   `:where(.css-hash).ant-tag.ant-tag-red:not(.ant-tag-disabled).ant-tag-filled`, four classes, and
+   injects them after this file, so a plainer selector loses the tie. The border stays as Ant left
+   it, transparent, because a stronger fill no longer needs one. */
+body .ant-tag.ant-tag-filled.ant-tag-green:not(.ant-tag-disabled) {
+  background-color: #d9f7be;
+  color: #237804;
+}
+body .ant-tag.ant-tag-filled.ant-tag-gold:not(.ant-tag-disabled) {
+  background-color: #fff1b8;
+  color: #ad6800;
+}
+body .ant-tag.ant-tag-filled.ant-tag-orange:not(.ant-tag-disabled) {
+  background-color: #ffe7ba;
+  color: #ad4e00;
+}
+body .ant-tag.ant-tag-filled.ant-tag-red:not(.ant-tag-disabled) {
+  background-color: #ffccc7;
+  color: #a8071a;
+}
