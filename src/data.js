@@ -746,26 +746,28 @@ export const SCENARIOS = {
     tiers: {
       question: 'How far down the evidence should this change reach?',
       unit: 'agents',
-      default: 1,
+      // Starts at the narrowest tier. Widening a change is a decision the admin makes on purpose,
+      // not one they inherit from a default they never saw.
+      default: 0,
       options: [
         {
           label: 'Only where the department is on the owner record',
           count: SET.confirmed,
-          basis: 'Strongest ground. The human who owns the agent carries Marketing on their own record.',
+          basis: "The department comes from the owner's own record.",
           filters: { deptAny: ['Marketing'], deptBasis: ['Owner record'] },
           outFilters: { deptAny: ['Marketing'], deptBasis: ['Manager', 'Usage guess'] },
         },
         {
           label: "Add the ones taken from the owner's manager",
           count: SET.confirmed + SET.inferred,
-          basis: "The owner has no department of their own, so the value comes from their manager's record. Still a human record, one step removed.",
+          basis: "These owners have no department of their own, so it comes from their manager's record instead.",
           filters: { deptAny: ['Marketing'], deptBasis: ['Owner record', 'Manager'] },
           outFilters: { deptAny: ['Marketing'], deptBasis: ['Usage guess'] },
         },
         {
           label: 'Add the unowned ones that Marketing calls',
           count: SET.confirmed + SET.inferred + SET.unresolved,
-          basis: 'Nobody owns these. The department is a guess from who invoked them in the last 90 days, not a fact, and there is no owner to approve a change that breaks them.',
+          basis: 'These agents have no owner, so the department comes from the people who call them most. Nobody can approve a change to them.',
           filters: { deptAny: ['Marketing'] },
           blind:
             'The 3 unowned agents are in, on a guess from usage rather than a derived value. Nobody can approve a change to them, so each one is applied provisionally and the guess is written into the record.',
