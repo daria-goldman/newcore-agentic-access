@@ -153,13 +153,22 @@ const DESIGNED_MANAGERS = ['Dana Weiss', 'Eitan Regev', 'Hila Mizrahi', 'Dana We
 
 // The owner's own record, flattened onto the agent row. Where nobody is accountable there is no
 // record to read, so the cells say so rather than guessing.
-function ownerFields(owner, dept, gap) {
+function ownerFields(owner, dept, gap, app, seed) {
   const p = humanProfile(owner, dept)
+  // A discovered owner is a real account in a real application. HR has never heard of them, so
+  // there is nobody to hold to account, but there is still an address a request can reach. An
+  // agent that never had an owner has not even that.
+  const account = !owner && gap === 'noHr' ? `${ownerFor(seed).toLowerCase().replace(/[^a-z]+/g, '.')}@${app.toLowerCase().replace(/[^a-z]+/g, '')}.local` : null
+  // The heaviest caller. One of the two attributes we added beyond the appendix, and the only
+  // human left when there is no owner and no manager.
+  const caller = !owner ? ownerFor(seed + 23) : null
   return {
     ownerEmail: p ? p.email : null,
     ownerTitle: p ? p.title : null,
     ownerType: p ? p.type : null,
     ownerStatus: p ? p.status : GAP_STATUS[gap] || null,
+    appAccount: account,
+    topCaller: caller,
   }
 }
 
@@ -194,7 +203,7 @@ function buildAgents() {
       usage: d.usage,
       status: d.status,
       app: d.app,
-      ...ownerFields(d.owner ? d.owner.name : null, d.dept.value, d.owner ? null : i === 3 ? 'never' : 'left'),
+      ...ownerFields(d.owner ? d.owner.name : null, d.dept.value, d.owner ? null : i === 3 ? 'never' : 'left', d.app, i + 7),
       inScope: d.dept.kind !== 'suggested' && d.dept.value === 'Marketing',
       unresolved: d.dept.kind === 'suggested' && d.dept.value === 'Marketing',
     })
@@ -253,6 +262,9 @@ function buildAgents() {
     rnd()
     rnd()
     const usage = pick(USAGE_ROLL)
+    // Picked before the row is built, because the unverified account behind a discovered owner is
+    // an account in this very application.
+    const app = pick(APPS)
     rows.push({
       key: `a${n}`,
       name,
@@ -267,12 +279,12 @@ function buildAgents() {
       createdTs: createdFor(rnd()),
       ownerNote,
       ownerGap,
-      ...ownerFields(owner, dept.value, ownerGap),
+      ...ownerFields(owner, dept.value, ownerGap, app, n),
       // Placeholder only. Risk is derived from the agent's own findings once they exist.
       risk: 'Low',
       usage,
       status: rnd() < 0.06 ? 'On review' : 'Active',
-      app: pick(APPS),
+      app,
       inScope: dept.kind !== 'suggested' && dept.value === 'Marketing',
       unresolved: dept.kind === 'suggested' && dept.value === 'Marketing',
     })
@@ -462,6 +474,8 @@ const IMPACT_RULES = {
   f8: (a) => a.dept.kind === 'suggested' && a.dept.value === 'Marketing',
   o1: (a) => a.ownerGap === 'left',
   o3: (a) => a.ownerGap === 'never',
+  o4: (a) => a.ownerGap === 'noHr',
+  o5: (a) => a.ownerGap === 'never',
 }
 
 // The list behind the cost line: exactly which agents a change would reach, taken from the
@@ -717,6 +731,28 @@ export const EXTRA_FINDINGS = [
     offReason: 'Off by default, because it is the only change here that cannot be rolled back.',
   },
   {
+    id: 'o4',
+    title: `Ask each app owner to identify ${UNOWNED.noHr} unverified accounts`,
+    where: 'Ownership',
+    basis: `${UNOWNED.noHr} agents are owned by an account that exists in an application but has no record in HR, so there is no manager to ask. The person who owns that application is the only one who can say who the account belongs to.`,
+    cost: 'Nothing changes until an owner is named.',
+    scope: UNOWNED.noHr,
+    approval: true,
+    on: true,
+    email: true,
+  },
+  {
+    id: 'o5',
+    title: `Ask the heaviest caller of ${UNOWNED.never - 5} agents to take them on`,
+    where: 'Ownership',
+    basis: 'Nobody was ever named for these agents and there is no account behind them, so the only human connected to each one is the person who calls it most.',
+    cost: 'Nothing changes until someone accepts. Declining is one click and puts the agent back on this list.',
+    scope: UNOWNED.never - 5,
+    approval: true,
+    on: true,
+    email: true,
+  },
+  {
     id: 'p2',
     title: 'Move 7 more policies to a workload credential',
     where: '7 policies',
@@ -878,7 +914,7 @@ export const SCENARIOS = {
         {
           label: 'Add the ones that never had an owner',
           count: UNOWNED_TOTAL,
-          basis: 'These agents have no owner and no manager, so the request goes to the people who call them most.',
+          basis: 'These agents have no owner and no manager, so the request goes to the one person who calls each of them most.',
           filters: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'] },
         },
       ],
@@ -886,7 +922,7 @@ export const SCENARIOS = {
     blind: `3 of these ${UNOWNED_TOTAL} are also the agents that could not be placed in any department.`,
     blindFilter: { owner: ['No owner'], guess: ['Marketing'] },
     blindFilterLabel: 'Show those 3 in the table',
-    findings: ['o1', 'o2', 'o3'],
+    findings: ['o1', 'o4', 'o5', 'o2', 'o3'],
     scope: 'unowned',
     blindNote: `3 of the ${UNOWNED_TOTAL} are still unplaced in any department until an owner is named.`,
   },

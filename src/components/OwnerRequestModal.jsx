@@ -16,17 +16,18 @@ const usageLine = (usage) => {
 // Owner first, then the owner's manager, then the person who owns the application the agent runs
 // in. Where none of the three exists there is nobody named at all, and the request reaches only
 // the people who call the agent.
-const recipientFor = (a) => (a ? a.owner || a.manager || (a.ownerGap === 'noHr' ? APP_OWNERS[a.app] : null) : null)
+const recipientFor = (a) =>
+  a ? a.owner || a.manager || (a.ownerGap === 'noHr' ? APP_OWNERS[a.app] : null) || a.topCaller || null : null
 // Where an agent never had an owner there is no owner's manager either, so the request falls to
 // the third group we decided on: the people who actually call the agent. It is a broadcast, not
 // an assignment, and the letter says so rather than pretending a named human is responsible.
-const CALLERS = 'The people who call this agent most'
-const recipientLabel = (a) => recipientFor(a) || CALLERS
+const recipientLabel = (a) => recipientFor(a) || 'Nobody'
 const recipientRole = (a) => {
   if (!a) return ''
   if (a.owner) return 'owner of this agent'
   if (a.manager) return 'manager of the departed owner'
   if (a.ownerGap === 'noHr') return `owner of ${a.app}, because this agent's owner has no HR record and so no manager`
+  if (a.topCaller) return 'calls this agent more than anyone else, and is the only human connected to it'
   return 'no owner and no manager on record, so nobody is named'
 }
 // Why the request is being sent, read from the agent rather than written into the template, so
@@ -126,7 +127,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
                 One message per agent, {agents.length} in total, each filled in with that agent's own
                 details.
                 {unreachable
-                  ? ` For ${unreachable} of them nobody is named at all, so that message goes to the people who call the agent most.`
+                  ? ` For ${unreachable} of them nobody is named at all.`
                   : ''}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

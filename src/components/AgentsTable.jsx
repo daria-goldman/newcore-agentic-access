@@ -141,7 +141,7 @@ const SEARCH_TEXT = {
       : r.dept.kind === 'inferred'
         ? `${r.dept.value} Manager`
         : r.dept.value,
-  owner: (r) => (r.owner ? `${r.owner} ${r.ownerNote || ''}` : r.ownerGap === 'left' ? 'Left 12 Apr' : 'N/A'),
+  owner: (r) => (r.owner ? `${r.owner} ${r.ownerNote || ''}` : r.ownerGap === 'left' ? 'Left 12 Apr' : r.appAccount || 'N/A'),
   risk: (r) => r.risk,
   usage: (r) => r.usage,
   lastUsed: (r) => r.lastUsed,
@@ -336,14 +336,16 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
               {r.ownerNote ? <span className="dept-soft"> · {r.ownerNote}</span> : null}
             </span>
           )
-        // Nobody is accountable. The cell says so plainly, and the reason lives in the tooltip.
-        const label = r.ownerGap === 'left' ? 'Left 12 Apr' : 'N/A'
+        // Nobody is accountable, but the three reasons are not the same thing and the cell has to
+        // show that. A discovered owner is a live account somebody can still write to. An agent
+        // that never had one has nothing behind it at all.
+        const label = r.ownerGap === 'left' ? 'Left 12 Apr' : r.ownerGap === 'noHr' ? r.appAccount : 'N/A'
         const why =
           r.ownerGap === 'left'
             ? 'The owner left the company on 12 April and no replacement was named.'
             : r.ownerGap === 'noHr'
-              ? 'The owner exists in the application but has no record in HR, so there is nobody to hold accountable.'
-              : 'This agent was created without an owner and has never been claimed.'
+              ? `This account exists in ${r.app} but has no record in HR, so there is nobody to hold accountable and no manager to escalate to. The owner of ${r.app} is the only person who can say who it belongs to.`
+              : `This agent was created without an owner and has never been claimed. The only human connected to it is ${r.topCaller}, who calls it more than anyone else.`
         return (
           <Tooltip title={why}>
             <span className="dept-soft">{label}</span>
