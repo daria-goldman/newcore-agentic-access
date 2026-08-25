@@ -258,10 +258,11 @@ function buildAgents() {
       name,
       dept,
       owner,
-      // An agent whose owner left still has that owner's manager. An agent that never had an
-      // owner has no manager either, and inventing one would put a real name on a request nobody
-      // can answer.
-      manager: owner ? humanProfile(owner, dept.value).manager : ownerGap === 'never' ? null : ownerFor(Math.floor(n / 4) + 11),
+      // A manager is a relationship held in HR. An agent whose owner left still has that owner's
+      // manager, because the owner had an HR record. An owner with no HR record has no manager in
+      // it either, and an agent that never had an owner has neither. Inventing a name for those
+      // would put a real person on a request they have no way to answer.
+      manager: owner ? humanProfile(owner, dept.value).manager : ownerGap === 'left' ? ownerFor(Math.floor(n / 4) + 11) : null,
       lastUsedTs: lastUsedFor(usage, rnd()),
       createdTs: createdFor(rnd()),
       ownerNote,
@@ -856,28 +857,28 @@ export const SCENARIOS = {
     ],
     // Here the ladder is not how sure we are, it is whether there is anybody left to ask.
     tiers: {
-      question: 'Who should this request actually reach?',
+      question: 'Who should this request reach?',
       unit: 'agents',
       default: 2,
       options: [
         {
-          label: 'Only where a manager can be reached',
+          label: 'Only where the owner had a manager',
           count: UNOWNED.left,
-          basis: 'The owner record is gone but the manager remains, so there is a named human to ask.',
+          basis: 'The owner left the company, so the request goes to their manager.',
           filters: { ownerGap: ['Owner left the company'] },
           outFilters: { ownerGap: ['Owner has no HR record', 'Never had an owner'] },
         },
         {
-          label: 'Add owners with no HR record',
+          label: 'Add the ones whose owner has no HR record',
           count: UNOWNED.left + UNOWNED.noHr,
-          basis: 'The owner exists in the application but not in HR, so the request goes to whoever runs the app rather than to a manager.',
+          basis: 'These owners hold an account in an application but have no record in HR, so they have no manager either. The request goes to the person who owns that application.',
           filters: { ownerGap: ['Owner left the company', 'Owner has no HR record'] },
           outFilters: { ownerGap: ['Never had an owner'] },
         },
         {
-          label: 'Add agents that never had an owner',
+          label: 'Add the ones that never had an owner',
           count: UNOWNED_TOTAL,
-          basis: 'Nobody was ever named for these. There is no person to ask, only the people who call the agent, so the request is a broadcast rather than an assignment.',
+          basis: 'These agents have no owner and no manager, so the request goes to the people who call them most. Nobody is named, so nobody is obliged to answer.',
           filters: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'] },
         },
       ],
