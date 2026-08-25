@@ -190,6 +190,25 @@ export function explain(filters, count) {
 
 // One place that turns a typed request about the table into a result, used both when a request
 // opens a new chat and when it continues one that is already going.
+// The six widgets on the page are the six things the assistant already knows how to work
+// through. A typed request that names one of them opens that piece of work, instead of falling
+// through to the marketing scenario because it was the default. The phrases here are the ones
+// with no filter equivalent, so a literal request like "agents with no owner" still goes to the
+// table rather than being swallowed by a scenario.
+const SCENARIO_PHRASES = [
+  ['harden', /harden|tighten|ужесточ|усил/],
+  ['path', /weak(est)? (policy |authentication |auth )?path|mkt-01|слаб\w* пут/],
+  ['threats', /threat|admin.level|unapproved app|prompt.exposed|угроз/],
+  ['severity', /by severity|severity breakdown|how severe|по серьёзност|по серьезност/],
+  ['type', /by type|violation type|excessive permission|outside policy|по типу/],
+  ['owners', /accountable owner|find an owner|ответственн\w* владел/],
+]
+export function matchScenario(text) {
+  const t = text.toLowerCase()
+  const hit = SCENARIO_PHRASES.find(([, re]) => re.test(t))
+  return hit ? hit[0] : null
+}
+
 // A question about violations and a filter over agents count different things. The severity
 // widget counts findings, the table counts the agents carrying them, and one agent can carry
 // several. Rather than let the two numbers look like a bug, the answer names the unit it used.

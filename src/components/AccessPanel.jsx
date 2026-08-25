@@ -15,7 +15,7 @@ import {
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
 import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
-import { answerFor, countMatching, isClearCommand, parseQuery, tableRequest } from '../query.js'
+import { answerFor, countMatching, isClearCommand, matchScenario, parseQuery, tableRequest } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
 const SUGGESTION_ICON = { harden: <ShieldCheckIcon />, owners: <AccountIcon />, path: <RouteIcon /> }
@@ -227,6 +227,16 @@ export default function AccessPanel({
 
   const send = () => {
     const typed = draft.trim()
+    // Typed with no chat open: match it against the work the widgets already describe, so a
+    // question about the weak path opens the weak path, not whatever the default happened to be.
+    if (typed && !chat && !tableAttached && !attachedWidgets.length) {
+      const key = matchScenario(typed)
+      if (key) {
+        setDraft('')
+        startChat(key, { text: typed, chips: attachedAgents.length > 3 ? [`${attachedAgents.length} agents`] : attachedAgents })
+        return
+      }
+    }
     // A request about the table is a request about the table, whether or not the chip is attached.
     const aboutTable =
       tableAttached || (typed && (isClearCommand(typed) || Object.keys(parseQuery(typed)).length > 0))
@@ -267,6 +277,12 @@ export default function AccessPanel({
     const chips = [...attachedWidgets, ...(attachedAgents.length > 3 ? [`${attachedAgents.length} agents`] : attachedAgents)]
     const text = draft.trim() || (widget ? `What should I do about ${widget.toLowerCase()}?` : 'What should I do about these agents?')
     setDraft('')
+    // Nothing attached and nothing recognised: say so instead of starting the marketing scenario
+    // and pretending it was the question.
+    if (!widget && !attachedAgents.length && typed) {
+      startFilterChat(typed)
+      return
+    }
     startChat(widget ? WIDGET_TO_SCENARIO[widget] : 'harden', { text, chips })
   }
 
@@ -298,7 +314,9 @@ export default function AccessPanel({
         return (
           <div className="step" style={{ fontSize: 13, marginBottom: 16 }}>
             I could not turn that into a filter. Name a department, a risk level, a status, or say something like
-            <b> no owner</b>, <b>idle</b> or <b>owned by a contractor</b>.
+            <b> no owner</b>, <b>idle</b> or <b>owned by a contractor</b>. I can also work through anything on this
+            page: <b>threats</b>, <b>violations by type</b> or <b>by severity</b>, <b>the accountable owner gap</b>,{' '}
+            <b>the weak authentication path</b>.
           </div>
         )
       return (
