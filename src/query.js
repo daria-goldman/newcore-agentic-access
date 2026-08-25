@@ -1,4 +1,4 @@
-import { AGENTS, DAY_MS, TODAY_MS } from './data.js'
+import { AGENTS, DAY_MS, THREAT_TYPES, TODAY_MS } from './data.js'
 
 const DEPARTMENTS = ['Marketing', 'Sales', 'Finance', 'Engineering', 'Support', 'Operations', 'Legal', 'People']
 
@@ -190,9 +190,40 @@ export function explain(filters, count) {
 
 // One place that turns a typed request about the table into a result, used both when a request
 // opens a new chat and when it continues one that is already going.
+// A question about violations and a filter over agents count different things. The severity
+// widget counts findings, the table counts the agents carrying them, and one agent can carry
+// several. Rather than let the two numbers look like a bug, the answer names the unit it used.
+const THREAT_SEVERITY = Object.fromEntries(THREAT_TYPES.map((t) => [t.key, t.severity]))
+const COUNTS_FINDINGS = /violation|finding|issue|threat|нарушен|находк|проблем|угроз/
+function unitNote(text, parsed, count) {
+  const level = (parsed.risk || [])[0]
+  if (!level || !COUNTS_FINDINGS.test(text.toLowerCase())) return null
+  let violations = 0
+  let threats = 0
+  AGENTS.forEach((a) => {
+    a.violations.forEach((v) => {
+      if (v.severity === level) violations++
+    })
+    a.threats.forEach((t) => {
+      if (THREAT_SEVERITY[t] === level) threats++
+    })
+  })
+  const word = level.toLowerCase()
+  const findings = threats
+    ? `${violations} ${word} violations and ${threats} ${word} threats are open`
+    : `${violations} ${word} violations are open`
+  return `You asked about findings, the table holds agents. ${findings}, and they sit on these ${count} agents, because one agent can carry more than one.`
+}
+
 export function tableRequest(text) {
   const cleared = isClearCommand(text)
   const parsed = cleared ? {} : parseQuery(text)
   const count = cleared ? countMatching({}) : Object.keys(parsed).length ? countMatching(parsed) : null
-  return { parsed, count, cleared, explanation: cleared || count === null ? null : explain(parsed, count) }
+  return {
+    parsed,
+    count,
+    cleared,
+    explanation: cleared || count === null ? null : explain(parsed, count),
+    unit: cleared || count === null ? null : unitNote(text, parsed, count),
+  }
 }

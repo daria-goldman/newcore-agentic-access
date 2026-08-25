@@ -307,6 +307,7 @@ export default function AccessPanel({
           <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '4px 0 8px' }}>
             Turned into these filters, the same ones you can set by hand.
           </div>
+          {result.unit ? <div className="blind" style={{ marginBottom: 10 }}>{result.unit}</div> : null}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
             {Object.entries(result.parsed).flatMap(([key, values]) =>
               values.map((v) => (
