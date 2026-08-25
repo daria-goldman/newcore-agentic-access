@@ -14,7 +14,7 @@ import {
   WandIcon,
 } from '../icons.jsx'
 import Avatar from './Avatar.jsx'
-import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents } from '../data.js'
+import { SCENARIOS, SUGGESTIONS, WIDGET_TO_SCENARIO, affectedAgents, computeStats } from '../data.js'
 import { answerFor, countMatching, isClearCommand, matchScenario, pageAnswer, parseQuery, tableRequest } from '../query.js'
 
 const SUGGESTION_TO_SCENARIO = { harden: 'harden', owners: 'owners', path: 'path' }
@@ -219,6 +219,26 @@ export default function AccessPanel({
     return parts.join(' ')
   }
 
+  // A compact picture of this conversation, in the same shape the report is built from.
+  const sessionState = (current) => {
+    const sc = SCENARIOS[current.scenarioKey]
+    const tier = sc?.tiers ? sc.tiers.options[current.tier ?? sc.tiers.default] : null
+    const live = computeStats(agents)
+    return {
+      openChat: sc ? sc.title : current.query || 'a request about the table',
+      scopeChosen: tier ? { option: tier.label, agents: tier.count, basis: tier.basis } : null,
+      agentsLeftOutOfScope: tier?.outFilters ? countMatching(tier.outFilters) : 0,
+      findingsOffered: (current.findings || []).map((f) => ({ title: f.title, selectedByTheAdmin: f.on })),
+      changes: (current.applied || []).map((a) => ({ title: a.title, outcome: a.state, reason: a.note || null })),
+      estateRightNow: {
+        openViolations: live.open,
+        threats: live.threats.map((t) => ({ threat: t.label, count: t.count })),
+        agentsWithoutAnOwner: live.unowned.total,
+        agentsOnTheWeakestPath: live.weakPath,
+      },
+    }
+  }
+
   const askAssistant = async (text, current) => {
     // The numbers on this page are the most reliable thing in the room. Answer from them first,
     // and only then fall back to a model or to a canned reply.
@@ -238,6 +258,9 @@ export default function AccessPanel({
         body: JSON.stringify({
           question: text,
           history: current.messages.filter((m) => m.text).slice(-6).map((m) => ({ role: m.role, text: m.text })),
+          // What the admin has done in this conversation. Without it the model knows the estate but
+          // not the run, and answers about a scope or a change it never saw chosen.
+          session: sessionState(current),
         }),
       })
       if (res.ok) answer = (await res.json()).text
