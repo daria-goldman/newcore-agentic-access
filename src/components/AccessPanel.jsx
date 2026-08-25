@@ -192,10 +192,37 @@ export default function AccessPanel({
   // The endpoint answers only from the estate data and only when a key is configured on the
   // server. Without one the prototype falls back to the rules it already carries, so a demo
   // never depends on the network.
+  // What happened in this conversation is the one thing the assistant must never be vague about.
+  // It is read straight off the applied list rather than sent anywhere, so the answer is the same
+  // record the report above is built from.
+  const runAnswer = (text, current) => {
+    if (!current?.applied?.length) return null
+    const t = text.toLowerCase()
+    if (
+      !/(not (fixed|done|applied|changed)|nothing (was )?(fixed|applied)|why .*(not|fail|block)|what .*(was|were|did).*(appl|chang|fix|block|wait)|blocked|waiting|left out|не сдел|почему не|что не|что осталось)/.test(
+        t,
+      )
+    )
+      return null
+    const applied = current.applied.filter((a) => a.state === 'applied')
+    const waiting = current.applied.filter((a) => a.state === 'waiting')
+    const blocked = current.applied.filter((a) => a.state === 'failed')
+    const sc = SCENARIOS[current.scenarioKey]
+    const tier = sc?.tiers ? sc.tiers.options[current.tier ?? sc.tiers.default] : null
+    const left = tier?.outFilters ? countMatching(tier.outFilters) : 0
+    const parts = []
+    if (applied.length) parts.push(`${applied.length} of the ${current.applied.length} changes went through.`)
+    blocked.forEach((a) => parts.push(`${a.title} did not: ${a.note}`))
+    waiting.forEach((a) => parts.push(`${a.title} is waiting on a person: ${a.note}`))
+    if (left) parts.push(`${left} agents were outside the scope you chose, so nothing here touched them.`)
+    if (!blocked.length && !waiting.length && !left) parts.push('Nothing was left unfinished.')
+    return parts.join(' ')
+  }
+
   const askAssistant = async (text, current) => {
     // The numbers on this page are the most reliable thing in the room. Answer from them first,
     // and only then fall back to a model or to a canned reply.
-    let answer = pageAnswer(text, agents)
+    let answer = runAnswer(text, current) || pageAnswer(text, agents)
     if (answer) {
       updateChat(current.id, (prev) => ({
         messages: prev.messages.map((m, i) =>
@@ -220,7 +247,7 @@ export default function AccessPanel({
     if (!answer) answer = answerFor(text)
     if (!answer)
       answer =
-        'I can only answer from what this screen holds: the agents, their owners, the findings and the policies behind them. Ask about one of those, or attach the table and describe a filter.'
+        'I can answer from what this screen holds: the agents and their owners, the findings and the policies behind them, and what happened in this run. Ask what was applied, what is blocked and why, or attach the table and describe a filter.'
     updateChat(current.id, (prev) => ({
       messages: prev.messages.map((m, i) =>
         i === prev.messages.length - 1 && m.kind === 'thinking' ? { role: 'assistant', kind: 'note', text: answer } : m,
@@ -681,9 +708,6 @@ export default function AccessPanel({
               </Button>
             </div>
           ) : null}
-          <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.45)', marginTop: 10 }}>
-            This screen does not call the job done.
-          </div>
         </div>
       )
     }
