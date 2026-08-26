@@ -159,7 +159,10 @@ function ownerFields(owner, dept, gap, app, seed) {
   // address, and the person who owns that application can say whose it is.
   const account = !owner && gap === 'noHr' ? `${ownerFor(seed).toLowerCase().replace(/[^a-z]+/g, '.')}@${app.toLowerCase().replace(/[^a-z]+/g, '')}.local` : null
   // The heaviest caller. One of the two attributes we added beyond the appendix.
-  const caller = ownerFor(seed + 23)
+  // Not seed + something: owners are assigned from the same counter, so a fixed offset made the
+  // heaviest caller lock to the owner and nineteen agents ended up with two callers between them.
+  let caller = ownerFor(hashName(`caller${seed}`) % 180)
+  if (caller === owner) caller = ownerFor(hashName(`caller${seed}x`) % 180)
   return {
     ownerEmail: p ? p.email : null,
     ownerTitle: p ? p.title : null,
@@ -739,8 +742,9 @@ export const EXTRA_FINDINGS = [
     cost: 'This one is hard to undo. Credentials are revoked and the runtime is stopped.',
     scope: DECOMMISSIONABLE,
     approval: true,
-    on: false,
-    offReason: 'Off by default, because it is the only change here that cannot be rolled back.',
+    // On like the rest. The cost line already says it cannot be rolled back, and the admin
+    // decides what to keep before anything is applied.
+    on: true,
   },
   {
     id: 'o4',

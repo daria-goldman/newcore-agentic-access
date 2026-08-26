@@ -39,11 +39,37 @@ const recipientRole = (a) => {
 }
 // Why the request is being sent, read from the agent rather than written into the template, so
 // the sentence matches the Owner status column instead of contradicting it.
-const openingLine = (a) => {
-  if (!a || a.owner) return 'is running under your name'
-  if (a.ownerGap === 'left') return 'has been running without an accountable owner since its owner left on 12 April'
-  if (a.ownerGap === 'noHr') return 'is owned by somebody with no record in HR, so nobody can be held accountable for it'
-  return 'was created without an owner and has never been claimed'
+// What the letter opens with, and what it actually asks for. Both follow the reason the request
+// exists, because a request to identify an unverified account is not a request to confirm
+// ownership, and neither is a request to take over from somebody who is suspended.
+const letterFor = (a) => {
+  if (a && a.owner && a.ownerStatus === 'Suspended')
+    return {
+      line: `is owned by ${a.owner}, whose account is suspended, so nobody can answer for it while it keeps running`,
+      ask: 'You call this agent more than anyone else. Please take it on, or tell us who should.',
+      cta: 'Take ownership',
+      decline: 'Somebody else should own it',
+    }
+  if (a && a.owner)
+    return {
+      line: 'is running under your name',
+      ask: 'Please confirm you still own this agent.',
+      cta: 'Confirm ownership',
+      decline: 'This is not my agent',
+    }
+  if (a && a.ownerGap === 'noHr')
+    return {
+      line: 'is owned by an account that has no record in HR, so there is nobody to hold accountable for it',
+      ask: 'You own this application. Please tell us who this account belongs to, or name an owner for the agent.',
+      cta: 'Identify the account',
+      decline: 'I do not know whose it is',
+    }
+  return {
+    line: 'has been running without an accountable owner since its owner left on 12 April',
+    ask: 'Please assign an owner for this agent.',
+    cta: 'Assign an owner',
+    decline: 'I cannot assign an owner',
+  }
 }
 
 // One request or forty eight. The difference is not cosmetic: in bulk there is no single
@@ -61,6 +87,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
   // The application refused the change, not NewCore. The letter goes to the person who owns that
   // application, and it asks for approval of one specific change, not for ownership of an agent.
   const appOwner = approval ? APP_OWNERS[approval.where] || 'the app owner' : null
+  const letter = letterFor(sample)
 
   if (approval) {
     return (
@@ -128,7 +155,13 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
             <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', marginBottom: 6 }}>{sent ? 'Sent to' : 'Send to'}</div>
             <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>
-                {allUnowned ? 'The closest person on record for each agent' : 'The owner, or the manager where nobody owns the agent'}, {managers.length} people
+                {agents.every((a) => a.owner && a.ownerStatus === 'Suspended')
+                  ? 'The person who calls each agent most, since its owner is suspended'
+                  : agents.every((a) => a.ownerGap === 'noHr')
+                    ? 'The owner of the application each unverified account lives in'
+                    : allUnowned
+                      ? 'The closest person on record for each agent'
+                      : 'The owner, or the closest person to them'}, {managers.length} people
               </div>
               <div style={{ fontSize: 12, color: 'rgba(0,0,0,0.65)', margin: '2px 0 8px' }}>
                 One message per agent, {agents.length} in total, each filled in with that agent's own
@@ -194,15 +227,13 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
           </div>
           <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: 12 }}>
             <p style={{ margin: '0 0 8px' }}>
-              <b>{sample?.name || 'content-bot'}</b> {openingLine(sample)}. It reaches{' '}
+              <b>{sample?.name || 'content-bot'}</b> {letter.line}. It reaches{' '}
               {sample?.app || 'Salesforce'} and {usageLine(sample?.usage)}.
             </p>
-            <p style={{ margin: '0 0 10px' }}>
-              {sample?.owner ? 'Please confirm you still own this agent.' : 'Please assign an owner for this agent.'}
-            </p>
+            <p style={{ margin: '0 0 10px' }}>{letter.ask}</p>
             <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-              <span className="mail-cta">{sample?.owner ? 'Confirm ownership' : 'Assign an owner'}</span>
-              <a style={{ fontSize: 12 }}>{sample?.owner ? 'This is not my agent' : 'I cannot assign an owner'}</a>
+              <span className="mail-cta">{letter.cta}</span>
+              <a style={{ fontSize: 12 }}>{letter.decline}</a>
             </div>
           </div>
         </div>
