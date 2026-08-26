@@ -156,7 +156,7 @@ export default function OwnerRequestModal({ open, onClose, onSend, agents = [], 
             <div style={{ background: '#fafafa', border: '1px solid #f0f0f0', borderRadius: 8, padding: '10px 12px' }}>
               <div style={{ fontWeight: 600, fontSize: 13 }}>
                 {agents.every((a) => a.owner && a.ownerStatus === 'Suspended')
-                  ? 'Whoever calls each agent most'
+                  ? 'One person per agent, the one who calls it most'
                   : agents.every((a) => a.ownerGap === 'noHr')
                     ? 'The owner of the application each unverified account lives in'
                     : allUnowned
