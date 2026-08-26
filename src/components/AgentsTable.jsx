@@ -444,7 +444,12 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         <div className="bulkbar">
           <b>{selected.length} agents selected</b>
           <span className="toolbar-grow" />
-          <Dropdown menu={{ items: actionItems(selected.length), onClick: ({ key }) => onBulk(key, selected) }}>
+          {/* Click, not hover. Ant opens a dropdown on hover by default, and a menu that can
+              decommission agents should never open because the pointer passed over it. */}
+          <Dropdown
+            trigger={['click']}
+            menu={{ items: actionItems(selected.length), onClick: ({ key }) => onBulk(key, selected) }}
+          >
             <Button size="small">
               Manage in bulk <DownOutlined style={{ fontSize: 10 }} />
             </Button>
