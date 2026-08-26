@@ -696,7 +696,11 @@ export default function AccessPanel({
 
           {tail.length ? (
             <div className="tail">
-              <div className="tail-head">Not done, and why</div>
+              {/* A request that went out is not a failure. The block only calls something undone
+                  when an application actually refused it. */}
+              <div className="tail-head">
+                {blocked.length ? (waiting.length ? 'Still open, and why' : 'Not done, and why') : 'Sent, waiting on people'}
+              </div>
               {tail.map((row) => (
                 <div key={row.key} className="tail-row">
                   <div className="result-line">
