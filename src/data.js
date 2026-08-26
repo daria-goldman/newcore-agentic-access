@@ -41,7 +41,7 @@ const DESIGNED = [
   { name: 'meeting-prep-agent', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Maya Ben-David' }, risk: 'High', usage: 'Used this week', status: 'Active', app: 'Salesforce' },
   { name: 'campaign-writer', dept: { kind: 'inferred', value: 'Marketing' }, owner: { name: 'Noa Katz' }, risk: 'Medium', usage: 'Idle 1 week', status: 'Active', app: 'HubSpot' },
   { name: 'promo-sync', dept: { kind: 'confirmed', value: 'Marketing' }, owner: { name: 'Ronen Levy', note: 'contractor' }, risk: 'High', usage: 'Used this week', status: 'On review', app: 'Salesforce' },
-  { name: 'content-bot', dept: { kind: 'suggested', value: 'Marketing', confidence: 90 }, owner: null, ownerNote: 'no owner', risk: 'High', usage: 'Idle 3 months', status: 'Active', app: 'Google Drive' },
+  { name: 'content-bot', dept: { kind: 'suggested', value: 'Marketing', confidence: 90 }, owner: null, ownerNote: 'owner has no HR record', risk: 'High', usage: 'Idle 3 months', status: 'Active', app: 'Google Drive' },
   { name: 'data-sync', dept: { kind: 'suggested', value: 'Sales', confidence: 100 }, owner: null, ownerNote: 'owner left 12 Apr', risk: 'High', usage: 'Idle 2 weeks', status: 'Active', app: 'NetSuite' },
 ]
 
@@ -56,8 +56,7 @@ export const MARKETING_IN_SCOPE = SET.confirmed + SET.inferred // 34
 // Agents with nobody accountable, split by why. 92 of 612 is 15 percent: above the 8 percent
 // of identities Veza measured with no HR link, and far below what the CSA survey implies for
 // agents, where a third of organisations have ownership defined for only a quarter of them.
-export const UNOWNED = { left: 48, noHr: 27, never: 17 }
-export const UNOWNED_TOTAL = UNOWNED.left + UNOWNED.noHr + UNOWNED.never // 92
+const GAP_TARGETS = { left: 48, noHr: 27 }
 
 function ownerFor(i) {
   return `${FIRST[i % FIRST.length]} ${LAST[(i * 7) % LAST.length]}`
@@ -113,8 +112,8 @@ function humanProfile(name, dept) {
 const RARE_STATUS = { 3: 'Suspended', 9: 'Staged', 14: 'Pending activation', 21: 'Suspended', 27: 'Staged', 33: 'Pending activation' }
 // Where nobody is accountable the status still says why. An owner who left is deactivated, and
 // an owner holding an account in a connected system with no HR record is exactly the brief's
-// "discovered". An agent that never had an owner has no human behind it at all, so no status.
-const GAP_STATUS = { left: 'Deactivated', noHr: 'Discovered', never: null }
+// "discovered". Both are statuses of a Human, taken from the brief's own list.
+const GAP_STATUS = { left: 'Deactivated', noHr: 'Discovered' }
 
 // The demo estate is read on 19 Aug 2026, the same day the trend chart ends.
 const TODAY = Date.UTC(2026, 7, 19)
@@ -156,12 +155,11 @@ const DESIGNED_MANAGERS = ['Dana Weiss', 'Eitan Regev', 'Hila Mizrahi', 'Dana We
 function ownerFields(owner, dept, gap, app, seed) {
   const p = humanProfile(owner, dept)
   // A discovered owner is a real account in a real application. HR has never heard of them, so
-  // there is nobody to hold to account, but there is still an address a request can reach. An
-  // agent that never had an owner has not even that.
+  // there is nobody to hold to account and no manager to escalate to, but there is still an
+  // address, and the person who owns that application can say whose it is.
   const account = !owner && gap === 'noHr' ? `${ownerFor(seed).toLowerCase().replace(/[^a-z]+/g, '.')}@${app.toLowerCase().replace(/[^a-z]+/g, '')}.local` : null
-  // The heaviest caller. One of the two attributes we added beyond the appendix, and the only
-  // human left when there is no owner and no manager.
-  const caller = !owner ? ownerFor(seed + 23) : null
+  // The heaviest caller. One of the two attributes we added beyond the appendix.
+  const caller = ownerFor(seed + 23)
   return {
     ownerEmail: p ? p.email : null,
     ownerTitle: p ? p.title : null,
@@ -191,19 +189,20 @@ function buildAgents() {
       name: d.name,
       // The manager of the person who owned this agent. Where nobody owns it, this is the
       // closest human a request can still reach, which is what the owner request is sent to.
-      // content-bot never had an owner, so it has no owner's manager either.
+      // content-bot's owner was never in HR, so there is no manager on record either.
+      // An owner with no HR record has no manager in HR either.
       manager: !d.owner && i === 3 ? null : DESIGNED_MANAGERS[i],
       lastUsedTs: lastUsedFor(d.usage, roll),
       createdTs: createdFor(rnd()),
       dept: d.dept,
       owner: d.owner ? d.owner.name : null,
       ownerNote: d.owner ? d.owner.note : d.ownerNote,
-      ownerGap: d.owner ? null : i === 3 ? 'never' : 'left',
+      ownerGap: d.owner ? null : i === 3 ? 'noHr' : 'left',
       risk: d.risk, // placeholder, replaced by withRisk once the findings exist
       usage: d.usage,
       status: d.status,
       app: d.app,
-      ...ownerFields(d.owner ? d.owner.name : null, d.dept.value, d.owner ? null : i === 3 ? 'never' : 'left', d.app, i + 7),
+      ...ownerFields(d.owner ? d.owner.name : null, d.dept.value, d.owner ? null : i === 3 ? 'noHr' : 'left', d.app, i + 7),
       inScope: d.dept.kind !== 'suggested' && d.dept.value === 'Marketing',
       unresolved: d.dept.kind === 'suggested' && d.dept.value === 'Marketing',
     })
@@ -213,14 +212,12 @@ function buildAgents() {
   let confirmed = SET.confirmed - 1
   let inferred = SET.inferred - 2
   // Nobody accountable: 11 in total, and three of them are marketing candidates.
-  const gaps = [
-    ...Array(UNOWNED.left - 1).fill('left'),
-    ...Array(UNOWNED.noHr).fill('noHr'),
-    ...Array(UNOWNED.never - 1).fill('never'),
-  ]
-  const GAP_NOTE = { left: 'owner left 12 Apr', noHr: 'owner has no HR record', never: 'never had an owner' }
-  // two more marketing candidates among the unowned, content-bot is the third
-  const gapIsMarketing = new Set([0, 5])
+  const gaps = [...Array(GAP_TARGETS.left - 1).fill('left'), ...Array(GAP_TARGETS.noHr - 1).fill('noHr')]
+  const GAP_NOTE = { left: 'owner left 12 Apr', noHr: 'owner has no HR record' }
+  // A department is read from the owner's HR record. Where the owner left, that record still
+  // exists, so the department survives them. Where the owner was never in HR, there is no record
+  // to read and the department can only be guessed. Those are the unplaceable ones.
+  const gapIsMarketing = new Set([47, 52])
 
   let n = rows.length
   let gapIndex = 0
@@ -270,10 +267,9 @@ function buildAgents() {
       name,
       dept,
       owner,
-      // A manager is a relationship held in HR. An agent whose owner left still has that owner's
-      // manager, because the owner had an HR record. An owner with no HR record has no manager in
-      // it either, and an agent that never had an owner has neither. Inventing a name for those
-      // would put a real person on a request they have no way to answer.
+      // A manager is a relationship held in HR. An owner who left still has one, because they had
+      // an HR record. An owner who was never in HR has none, and inventing a name would put a real
+      // person on a request they have no way to answer.
       manager: owner ? humanProfile(owner, dept.value).manager : ownerGap === 'left' ? ownerFor(Math.floor(n / 4) + 11) : null,
       lastUsedTs: lastUsedFor(usage, rnd()),
       createdTs: createdFor(rnd()),
@@ -375,6 +371,10 @@ export function withRisk(rows) {
   return rows.map((a) => ({ ...a, ...riskOf(a) }))
 }
 
+// The one rule the widget, the table, the violation and the request all read.
+export const unreachableOwner = (a) => !a.owner || a.ownerStatus === 'Suspended'
+export const ownerGapOf = (a) => (a.owner ? (a.ownerStatus === 'Suspended' ? 'suspended' : null) : a.ownerGap)
+
 function withViolations(rows) {
   const severityFor = (type, i) => SEVERITY_MIX[type][i % SEVERITY_MIX[type].length]
   const add = (agent, type, i) => {
@@ -385,11 +385,12 @@ function withViolations(rows) {
     a.threats = []
   })
 
-  // Every agent nobody owns carries the ownership violation, so the widget and the table can
-  // never disagree: both count the same rows.
+  // Three ways an owner stops being reachable, all three from the brief's own status list: the
+  // owner left, the owner was never in HR, the owner is suspended. Every one of those agents
+  // carries the ownership violation, so the widget and the table always count the same rows.
   let n = 0
   rows.forEach((a) => {
-    if (!a.owner) add(a, 'owner', n++)
+    if (unreachableOwner(a)) add(a, 'owner', n++)
   })
 
   // The weak path belongs to the marketing set first, MKT-01 is one of the eight policies.
@@ -434,10 +435,12 @@ export function computeStats(agents) {
     })
   })
   const withType = (key) => agents.filter((a) => a.violations.some((v) => v.type === key)).length
-  const unowned = { left: 0, noHr: 0, never: 0 }
+  const unowned = { left: 0, noHr: 0, suspended: 0 }
   agents.forEach((a) => {
-    if (!a.owner && a.ownerGap) unowned[a.ownerGap]++
+    const gap = ownerGapOf(a)
+    if (gap) unowned[gap]++
   })
+  unowned.total = unowned.left + unowned.noHr + unowned.suspended
   const threats = THREAT_TYPES.map((t) => ({
     ...t,
     count: agents.filter((a) => a.threats.includes(t.key)).length,
@@ -448,13 +451,17 @@ export function computeStats(agents) {
     bySeverity,
     threats,
     threatTotal: threats.reduce((sum, t) => sum + t.count, 0),
-    unowned: { ...unowned, total: unowned.left + unowned.noHr + unowned.never },
+    unowned,
     weakPath: withType('path'),
     marketingInScope: agents.filter((a) => a.inScope).length,
   }
 }
 
 // What each finding actually clears when it is applied.
+// Counted rather than written down, so a finding's title, its list and the number of violations
+// it clears can never disagree.
+const DECOMMISSIONABLE = AGENTS.filter((a) => unreachableOwner(a) && /Idle 6/.test(a.usage)).length
+
 export const FIX_EFFECTS = {
   f1: { violation: 'excess', agents: 12 },
   f2: { violation: 'excess', agents: 4, threat: 'admin' },
@@ -465,7 +472,7 @@ export const FIX_EFFECTS = {
   f7: { threat: 'prompt', agents: 1 },
   t1: { violation: 'outside', agents: 3, threat: 'unapproved' },
   o2: { violation: 'excess', agents: 12 },
-  o3: { violation: 'owner', agents: 5 },
+  o3: { violation: 'owner', agents: DECOMMISSIONABLE },
   p2: { violation: 'path', agents: 33 },
 }
 
@@ -473,9 +480,9 @@ export const FIX_EFFECTS = {
 const IMPACT_RULES = {
   f8: (a) => a.dept.kind === 'suggested' && a.dept.value === 'Marketing',
   o1: (a) => a.ownerGap === 'left',
-  o3: (a) => a.ownerGap === 'never',
+  o3: (a) => unreachableOwner(a) && /Idle 6/.test(a.usage),
   o4: (a) => a.ownerGap === 'noHr',
-  o5: (a) => a.ownerGap === 'never',
+  o5: (a) => a.owner && a.ownerStatus === 'Suspended',
 }
 
 // The list behind the cost line: exactly which agents a change would reach, taken from the
@@ -527,6 +534,11 @@ export function applyFixes(agents, findingIds) {
     return { ...next, ...riskOf(next) }
   })
 }
+// Read off the finished estate, so the widget, the scenario and the findings cannot drift apart.
+const S_UNOWNED = computeStats(AGENTS).unowned
+export const UNOWNED = { left: S_UNOWNED.left, noHr: S_UNOWNED.noHr, suspended: S_UNOWNED.suspended }
+export const UNOWNED_TOTAL = S_UNOWNED.total
+
 export const MARKETING_AGENTS = AGENTS.filter((a) => a.inScope)
 export const UNRESOLVED_AGENTS = AGENTS.filter((a) => a.unresolved)
 export const UNOWNED_AGENTS = AGENTS.filter((a) => !a.owner)
@@ -559,7 +571,7 @@ export const SUGGESTIONS = [
   {
     id: 'owners',
     title: `Find an owner for ${UNOWNED_TOTAL} agents`,
-    sub: `${UNOWNED.left} owners left the company, ${UNOWNED.noHr} have no HR record`,
+    sub: `${UNOWNED.left} owners left the company, ${UNOWNED.noHr} have no HR record, ${UNOWNED.suspended} are suspended`,
   },
   { id: 'path', title: 'Remove the weak path from MKT-01', sub: 'password + OTP is the only path an agent can take' },
 ]
@@ -721,11 +733,11 @@ export const EXTRA_FINDINGS = [
   },
   {
     id: 'o3',
-    title: 'Decommission 5 agents that never had an owner',
+    title: `Decommission ${DECOMMISSIONABLE} agents nobody can answer for`,
     where: 'Salesforce, Jira',
-    basis: 'Created by a person who never appeared in HR, no call in 6 months.',
+    basis: 'No owner anybody can reach and no call in 6 months.',
     cost: 'This one is hard to undo. Credentials are revoked and the runtime is stopped.',
-    scope: 5,
+    scope: DECOMMISSIONABLE,
     approval: true,
     on: false,
     offReason: 'Off by default, because it is the only change here that cannot be rolled back.',
@@ -743,11 +755,11 @@ export const EXTRA_FINDINGS = [
   },
   {
     id: 'o5',
-    title: `Ask the heaviest caller of ${UNOWNED.never - 5} agents to take them on`,
+    title: `Reassign ${UNOWNED.suspended} agents whose owner is suspended`,
     where: 'Ownership',
-    basis: 'Nobody was ever named for these agents and there is no account behind them, so the only human connected to each one is the person who calls it most.',
+    basis: 'The owner cannot sign in, so they cannot answer for the agent or approve anything about it, while the agent keeps running on its own credentials. The request goes to the person who calls it most, who is not blocked.',
     cost: 'Nothing changes until someone accepts. Declining is one click and puts the agent back on this list.',
-    scope: UNOWNED.never - 5,
+    scope: UNOWNED.suspended,
     approval: true,
     on: true,
     email: true,
@@ -881,15 +893,15 @@ export const SCENARIOS = {
   owners: {
     title: `Find an owner for ${UNOWNED_TOTAL} agents`,
     reading: [
-      `${UNOWNED_TOTAL} agents have nobody accountable.`,
+      `${UNOWNED_TOTAL} agents have nobody who can answer for them.`,
       `For ${UNOWNED.left} of them the owner left the company, so their manager is the closest human.`,
     ],
-    setTitle: `${UNOWNED_TOTAL} agents without an owner`,
-    setNote: 'Every agent here has no owner on record. What differs between them is whether there is still a human to ask.',
+    setTitle: `${UNOWNED_TOTAL} agents in scope`,
+    setNote: 'The owner on record cannot answer for any of these agents. What differs is why, and who is left to ask instead.',
     rows: [
-      ['Owner left the company', UNOWNED.left, 'the human record is gone, the manager remains'],
-      ['Owner has no HR record', UNOWNED.noHr, 'the owner exists in the app but not in HR'],
-      ['Never had an owner', UNOWNED.never, 'created without an owner and never claimed'],
+      ['Owner left the company', UNOWNED.left, 'the human record is deactivated, the manager remains'],
+      ['Owner has no HR record', UNOWNED.noHr, 'the owner holds an account in an app but was never in HR'],
+      ['Owner is suspended', UNOWNED.suspended, 'the owner cannot sign in, so they cannot answer or approve'],
     ],
     // Here the ladder is not how sure we are, it is whether there is anybody left to ask.
     tiers: {
@@ -902,20 +914,20 @@ export const SCENARIOS = {
           count: UNOWNED.left,
           basis: 'The owner left the company, so the request goes to their manager.',
           filters: { ownerGap: ['Owner left the company'] },
-          outFilters: { ownerGap: ['Owner has no HR record', 'Never had an owner'] },
+          outFilters: { ownerGap: ['Owner has no HR record', 'Owner is suspended'] },
         },
         {
           label: 'Add the ones whose owner has no HR record',
           count: UNOWNED.left + UNOWNED.noHr,
           basis: 'These owners hold an account in an application but have no record in HR, so they have no manager either. The request goes to the person who owns that application.',
           filters: { ownerGap: ['Owner left the company', 'Owner has no HR record'] },
-          outFilters: { ownerGap: ['Never had an owner'] },
+          outFilters: { ownerGap: ['Owner is suspended'] },
         },
         {
-          label: 'Add the ones that never had an owner',
+          label: 'Add the ones whose owner is suspended',
           count: UNOWNED_TOTAL,
-          basis: 'These agents have no owner and no manager, so the request goes to the one person who calls each of them most.',
-          filters: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'] },
+          basis: 'These owners cannot sign in, so they cannot answer or approve anything, while the agent keeps running. The request goes to the person who calls it most and is not blocked.',
+          filters: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Owner is suspended'] },
         },
       ],
     },

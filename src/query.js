@@ -123,10 +123,11 @@ export const FILTER_MATCH = {
   deptAny: (r, v) => r.dept.value === v,
   deptBasis: (r, v) =>
     ({ 'Owner record': 'confirmed', Manager: 'inferred', 'Usage guess': 'suggested' })[v] === r.dept.kind,
+  // A suspended owner exists, so this one cannot key off a missing owner the way the other two do.
   ownerGap: (r, v) =>
-    !r.owner &&
-    ({ 'Owner left the company': 'left', 'Owner has no HR record': 'noHr', 'Never had an owner': 'never' })[v] ===
-      r.ownerGap,
+    v === 'Owner is suspended'
+      ? !!r.owner && r.ownerStatus === 'Suspended'
+      : !r.owner && ({ 'Owner left the company': 'left', 'Owner has no HR record': 'noHr' })[v] === r.ownerGap,
   manager: (r, v) => (r.manager || 'N/A') === v,
   ownerTitle: (r, v) => (r.ownerTitle || 'N/A') === v,
   ownerType: (r, v) => (r.ownerType || 'N/A') === v,
@@ -252,7 +253,7 @@ const PAGE_TOPICS = [
   {
     re: /accountable owner|no owner|unowned|nobody owns|orphan|владел|ответственн/,
     build: (s) =>
-      `${s.unowned.total} agents have nobody accountable: ${s.unowned.left} whose owner left the company, ${s.unowned.noHr} whose owner has no record in HR, ${s.unowned.never} that never had an owner at all.`,
+      `${s.unowned.total} agents have nobody who can answer for them: ${s.unowned.left} whose owner left the company, ${s.unowned.noHr} whose owner holds an account but was never in HR, ${s.unowned.suspended} whose owner is suspended and cannot sign in.`,
   },
   {
     re: /threat|угроз/,

@@ -12,7 +12,8 @@ import { tableRequest } from './query.js'
 // The chat never changes what the screen shows behind their back.
 const SCOPE_FILTERS = {
   marketing: { dept: ['Marketing'] },
-  unowned: { owner: ['No owner'] },
+  // Every reason an owner cannot be reached, not only a missing one.
+  unowned: { ownerGap: ['Owner left the company', 'Owner has no HR record', 'Owner is suspended'] },
 }
 let chatSeq = 0
 

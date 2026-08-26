@@ -97,7 +97,7 @@ export default function RiskWidgets({ onFix, selected, onToggle, stats }) {
           {[
             ['Owner left the company', unowned.left],
             ['Owner has no HR record', unowned.noHr],
-            ['Never had an owner', unowned.never],
+            ['Owner is suspended', unowned.suspended],
           ].map(([label, count]) => (
             <div key={label} className="stat-row">
               <span>{label}</span>

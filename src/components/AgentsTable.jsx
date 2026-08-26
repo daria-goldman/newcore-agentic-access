@@ -94,7 +94,7 @@ const FILTER_DEFS = {
   deptBasis: { label: 'Derived from', options: ['Owner record', 'Manager', 'Usage guess'] },
   ownerGap: {
     label: 'Why there is no owner',
-    options: ['Owner left the company', 'Owner has no HR record', 'Never had an owner'],
+    options: ['Owner left the company', 'Owner has no HR record', 'Owner is suspended'],
   },
   ownerName: { label: 'Owner name', options: namesIn('owner'), search: true },
   app: { label: 'App', options: ['Salesforce', 'HubSpot', 'Google Drive', 'Slack', 'Notion', 'Jira', 'Zendesk', 'NetSuite'] },
@@ -339,13 +339,13 @@ export default function AgentsTable({ rows, selected, onSelected, filters, setFi
         // Nobody is accountable, but the three reasons are not the same thing and the cell has to
         // show that. A discovered owner is a live account somebody can still write to. An agent
         // that never had one has nothing behind it at all.
-        const label = r.ownerGap === 'left' ? 'Left 12 Apr' : r.ownerGap === 'noHr' ? r.appAccount : 'N/A'
+        const label = r.ownerGap === 'left' ? 'Left 12 Apr' : r.appAccount || 'N/A'
         const why =
           r.ownerGap === 'left'
             ? 'The owner left the company on 12 April and no replacement was named.'
             : r.ownerGap === 'noHr'
               ? `This account exists in ${r.app} but has no record in HR, so there is nobody to hold accountable and no manager to escalate to. The owner of ${r.app} is the only person who can say who it belongs to.`
-              : `This agent was created without an owner and has never been claimed. The only human connected to it is ${r.topCaller}, who calls it more than anyone else.`
+              : 'Nobody is recorded as the owner of this agent.'
         return (
           <Tooltip title={why}>
             <span className="dept-soft">{label}</span>
